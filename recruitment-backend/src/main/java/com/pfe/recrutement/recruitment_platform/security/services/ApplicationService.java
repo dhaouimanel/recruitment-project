@@ -398,4 +398,13 @@ public class ApplicationService {
             }
         }
     }
+
+
+    public boolean hasCandidateAppliedToOffer(String username, Long offerId) {
+        User candidate = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        Offer offer = offerRepository.findById(offerId)
+                .orElseThrow(() -> new RuntimeException("Offre non trouvée"));
+        return applicationRepository.existsByOfferAndCandidate(offer, candidate);
+    }
 }

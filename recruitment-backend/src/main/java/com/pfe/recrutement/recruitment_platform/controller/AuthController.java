@@ -6,6 +6,7 @@ import com.pfe.recrutement.recruitment_platform.model.Role;
 import com.pfe.recrutement.recruitment_platform.model.User;
 import com.pfe.recrutement.recruitment_platform.payload.request.LoginRequest;
 import com.pfe.recrutement.recruitment_platform.payload.request.SignupRequest;
+import com.pfe.recrutement.recruitment_platform.payload.request.UpdateProfileRequest;
 import com.pfe.recrutement.recruitment_platform.payload.response.JwtResponse;
 import com.pfe.recrutement.recruitment_platform.payload.response.MessageResponse;
 import com.pfe.recrutement.recruitment_platform.repositories.PasswordResetTokenRepository;
@@ -15,6 +16,8 @@ import com.pfe.recrutement.recruitment_platform.security.jwt.JwtUtils;
 import com.pfe.recrutement.recruitment_platform.security.services.PasswordResetService;
 import com.pfe.recrutement.recruitment_platform.security.services.UserDetailsImpl;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -22,6 +25,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,6 +42,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     @Autowired
     AuthenticationManager authenticationManager;
 
@@ -72,7 +77,6 @@ public class AuthController {
     @Value("${google.redirect.uri}")
     private String googleRedirectUri;
 
-    // LinkedIn OAuth properties
     @Value("${linkedin.client.id}")
     private String linkedinClientId;
 
@@ -196,10 +200,10 @@ public class AuthController {
     @PostMapping("/oauth/google")
     public ResponseEntity<?> authenticateWithGoogle(@RequestBody OAuth2Request request) {
         try {
-            // 1. Échanger le code contre un access token
+
             String accessToken = exchangeGoogleCode(request.getCode());
 
-            // 2. Récupérer les informations utilisateur
+
             Map<String, Object> userInfo = getGoogleUserInfo(accessToken);
 
             String email = (String) userInfo.get("email");
@@ -207,10 +211,10 @@ public class AuthController {
             String lastName = (String) userInfo.get("family_name");
             String providerId = (String) userInfo.get("id");
 
-            // 3. Trouver ou créer l'utilisateur
+
             User user = processOAuthUser(email, firstName, lastName, providerId);
 
-            // 4. Générer le JWT
+
             return generateJwtResponse(user);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Erreur lors de l'authentification Google : " + e.getMessage()));
@@ -245,7 +249,7 @@ public class AuthController {
         return response.getBody();
     }
 
-    // ==================== LINKEDIN ====================
+
 
     @PostMapping("/oauth/linkedin")
     public ResponseEntity<?> authenticateWithLinkedIn(@RequestBody OAuth2Request request) {
@@ -261,10 +265,10 @@ public class AuthController {
             String lastName = (String) userInfo.get("family_name");
             String providerId = (String) userInfo.get("id");
 
-            // 3. Trouver ou créer l'utilisateur
+
             User user = processOAuthUser(email, firstName, lastName, providerId);
 
-            // 4. Générer le JWT
+
             return generateJwtResponse(user);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new MessageResponse("Erreur lors de l'authentification LinkedIn : " + e.getMessage()));
@@ -300,7 +304,6 @@ public class AuthController {
         ResponseEntity<Map> profileResponse = restTemplate.exchange(profileEndpoint, HttpMethod.GET, entity, Map.class);
         Map<String, Object> profile = profileResponse.getBody();
 
-        // Récupérer l'adresse email
         String emailEndpoint = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))";
         ResponseEntity<Map> emailResponse = restTemplate.exchange(emailEndpoint, HttpMethod.GET, entity, Map.class);
         Map<String, Object> emailData = emailResponse.getBody();
@@ -329,7 +332,6 @@ public class AuthController {
         return null;
     }
 
-    // ==================== MÉTHODES COMMUNES ====================
 
     private User processOAuthUser(String email, String firstName, String lastName, String providerId) {
         // Vérifier si l'utilisateur existe déjà par email
@@ -337,22 +339,18 @@ public class AuthController {
         if (existingUser.isPresent()) {
             return existingUser.get();
         }
-
-        // Créer un nouvel utilisateur
         User user = new User();
         user.setEmail(email);
         user.setFname(firstName);
         user.setLname(lastName);
-        // Générer un nom d'utilisateur à partir de l'email (partie avant @)
         String username = email.split("@")[0];
-        // S'assurer qu'il est unique
+
         username = makeUsernameUnique(username);
         user.setUsername(username);
-        user.setPhone(""); // à compléter plus tard
-        // Mot de passe aléatoire (l'utilisateur n'aura pas à s'en servir)
+        user.setPhone("");
+
         user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
 
-        // Rôle par défaut : CANDIDAT
         Set<Role> roles = new HashSet<>();
         Role candidatRole = roleRepository.findByName(ERole.ROLE_CANDIDAT)
                 .orElseThrow(() -> new RuntimeException("Rôle CANDIDAT introuvable"));
@@ -376,7 +374,6 @@ public class AuthController {
     private ResponseEntity<?> generateJwtResponse(User user) {
         UserDetailsImpl userDetails = UserDetailsImpl.build(user);
 
-        // Créer un objet Authentication à partir du UserDetails
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userDetails, null, userDetails.getAuthorities());
 
@@ -395,4 +392,86 @@ public class AuthController {
                 userDetails.getEmail(),
                 roles));
     }
+
+
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest updateRequest,
+                                           @AuthenticationPrincipal UserDetailsImpl currentUser) {
+        // Récupérer l'utilisateur depuis la base de données
+        User user = userRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        // Vérifier l'unicité du username s'il a changé
+        if (!user.getUsername().equals(updateRequest.getUsername()) &&
+                userRepository.existsByUsername(updateRequest.getUsername())) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Erreur : Ce nom d'utilisateur est déjà pris"));
+        }
+
+        // Vérifier l'unicité de l'email s'il a changé
+        if (!user.getEmail().equals(updateRequest.getEmail()) &&
+                userRepository.existsByEmail(updateRequest.getEmail())) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Erreur : Cet email est déjà utilisé"));
+        }
+
+        // Mise à jour des champs
+        user.setFname(updateRequest.getFname());
+        user.setLname(updateRequest.getLname());
+        user.setUsername(updateRequest.getUsername());
+        user.setEmail(updateRequest.getEmail());
+        user.setPhone(updateRequest.getPhone());
+
+        // Changement de mot de passe si demandé
+        if (updateRequest.getNewPassword() != null && !updateRequest.getNewPassword().isEmpty()) {
+            if (updateRequest.getCurrentPassword() == null || updateRequest.getCurrentPassword().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(new MessageResponse("Erreur : Veuillez fournir votre mot de passe actuel"));
+            }
+            if (!passwordEncoder.matches(updateRequest.getCurrentPassword(), user.getPassword())) {
+                return ResponseEntity.badRequest()
+                        .body(new MessageResponse("Erreur : Mot de passe actuel incorrect"));
+            }
+            user.setPassword(passwordEncoder.encode(updateRequest.getNewPassword()));
+        }
+
+        userRepository.save(user);
+
+        // Générer un nouveau token avec le nouveau username
+        String newJwt = jwtUtils.generateTokenFromUsername(user.getUsername());
+        logger.debug("Nouveau token généré: {}", newJwt);
+
+        // Construire la réponse avec les informations mises à jour ET le nouveau token
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", user.getId());
+        response.put("fname", user.getFname());
+        response.put("lname", user.getLname());
+        response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
+        response.put("phone", user.getPhone());
+        response.put("roles", user.getRoles().stream()
+                .map(role -> role.getName().name())
+                .collect(Collectors.toList()));
+        response.put("accessToken", newJwt);
+
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetailsImpl currentUser) {
+        User user = userRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", user.getId());
+        response.put("fname", user.getFname());
+        response.put("lname", user.getLname());
+        response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
+        response.put("phone", user.getPhone());
+        response.put("roles", user.getRoles().stream()
+                .map(role -> role.getName().name())
+                .collect(Collectors.toList()));
+        return ResponseEntity.ok(response);
+    }
+
 }

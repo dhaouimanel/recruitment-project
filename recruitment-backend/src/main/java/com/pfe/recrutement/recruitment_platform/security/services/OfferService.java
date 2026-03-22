@@ -33,9 +33,16 @@ public class OfferService {
         }
     }
     public Offer createOffer(Offer offer) {
-        String textToEmbed = offer.getTitle() + " " + (offer.getLocation() != null ? offer.getLocation() : "");
+
+        String textToEmbed =
+                offer.getTitle() + " " +
+                        (offer.getDescription() != null ? offer.getDescription() : "") + " " +
+                        (offer.getLocation() != null ? offer.getLocation() : "");
+
         float[] embedding = embeddingService.generateEmbedding(textToEmbed);
+
         offer.setEmbeddingFromFloatArray(embedding);
+
         return offerRepository.save(offer);
     }
     public List<Offer> getAllOffers() {
@@ -49,14 +56,21 @@ public class OfferService {
                 .orElseThrow(() -> new RuntimeException("Offre non trouvée"));
     }
     public Offer updateOffer(Long id, Offer updatedOffer) {
+
         Offer offer = getOfferById(id);
+
         offer.setTitle(updatedOffer.getTitle());
         offer.setDescription(updatedOffer.getDescription());
         offer.setLocation(updatedOffer.getLocation());
         offer.setPublished(updatedOffer.isPublished());
 
-        String textToEmbed = offer.getTitle() + " " + (offer.getLocation() != null ? offer.getLocation() : "");
+        String textToEmbed =
+                offer.getTitle() + " " +
+                        (offer.getDescription() != null ? offer.getDescription() : "") + " " +
+                        (offer.getLocation() != null ? offer.getLocation() : "");
+
         float[] embedding = embeddingService.generateEmbedding(textToEmbed);
+
         offer.setEmbeddingFromFloatArray(embedding);
 
         return offerRepository.save(offer);
@@ -66,11 +80,20 @@ public class OfferService {
     }
     @Transactional
     public void generateEmbeddingsForAllOffers() {
+
         List<Offer> offers = offerRepository.findAll();
+
         for (Offer offer : offers) {
-            String text = offer.getTitle() + " " + (offer.getLocation() != null ? offer.getLocation() : "");
+
+            String text =
+                    offer.getTitle() + " " +
+                            (offer.getDescription() != null ? offer.getDescription() : "") + " " +
+                            (offer.getLocation() != null ? offer.getLocation() : "");
+
             float[] embedding = embeddingService.generateEmbedding(text);
+
             offer.setEmbeddingFromFloatArray(embedding);
+
             offerRepository.save(offer);
         }
     }

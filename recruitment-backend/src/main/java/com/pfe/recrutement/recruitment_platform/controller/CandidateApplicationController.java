@@ -63,25 +63,19 @@ public class CandidateApplicationController {
 
             String username = authentication.getName();
 
-
             validateFile(cvFile, "CV", new String[]{"application/pdf"});
             validateFile(coverLetterFile, "Lettre de motivation",
                     new String[]{"application/pdf", "application/msword",
                             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
 
 
-            String cvFilePath = fileStorageService.storeFile(cvFile, "cv");
-            String coverLetterFilePath = fileStorageService.storeFile(coverLetterFile, "cover-letters");
-
-
-            ApplicationDto applicationDto = new ApplicationDto();
-            applicationDto.setOfferId(offerId);
-            applicationDto.setCvPath(cvFilePath);
-            applicationDto.setCoverLetterPath(coverLetterFilePath);
-            applicationDto.setMessage(message);
-
-
-            Application application = applicationService.createApplicationWithFiles(applicationDto, username);
+            Application application = applicationService.createApplicationWithFiles(
+                    offerId,
+                    cvFile,
+                    coverLetterFile,
+                    message,
+                    username
+            );
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Candidature envoyée avec succès");
@@ -285,6 +279,20 @@ public class CandidateApplicationController {
             return ResponseEntity.ok(applications);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/check")
+    public ResponseEntity<?> checkIfAlreadyApplied(
+            @RequestParam("offerId") Long offerId,
+            Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            boolean alreadyApplied = applicationService.hasCandidateAppliedToOffer(username, offerId);
+            return ResponseEntity.ok(alreadyApplied);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 

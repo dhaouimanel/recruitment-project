@@ -111,7 +111,6 @@ public class RhApplicationController {
             byte[] fileContent = applicationService.downloadCv(applicationId);
             Application application = applicationService.getApplicationById(applicationId);
 
-            // Extraire le nom de fichier original ou en générer un
             String fileName = "CV_" +
                     (application.getCandidate() != null ?
                             application.getCandidate().getFname() + "_" +

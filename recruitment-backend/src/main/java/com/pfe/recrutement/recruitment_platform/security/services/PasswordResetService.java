@@ -10,9 +10,13 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
+
 @Service
 public class PasswordResetService {
+
     @Autowired
     private UserRepository userRepository;
 
@@ -26,6 +30,9 @@ public class PasswordResetService {
     private PasswordEncoder passwordEncoder;
 
     public void createPasswordResetTokenForUser(User user, String token) {
+        tokenRepository.findByUser(user).ifPresent(existingToken -> {
+            tokenRepository.delete(existingToken);
+        });
         PasswordResetToken myToken = new PasswordResetToken(token, user);
         tokenRepository.save(myToken);
     }
@@ -38,16 +45,20 @@ public class PasswordResetService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
         message.setSubject("Réinitialisation de votre mot de passe");
-        message.setText("Pour réinitialiser votre mot de passe, cliquez sur le lien suivant : "
-                + "http://localhost:4200/reset-password?token=" + token);
+
+        // On change le format : /reset-password/TOKEN au lieu de ?token=TOKEN
+        String link = "http://localhost:4200/#/reset-password/" + token;
+        message.setText("Pour réinitialiser votre mot de passe, cliquez sur le lien suivant : " + link);
         mailSender.send(message);
     }
+
     public String validatePasswordResetToken(String token) {
         PasswordResetToken passToken = tokenRepository.findByToken(token).orElse(null);
         if (passToken == null) return "invalidToken";
         if (passToken.getExpiryDate().before(new Date())) return "expired";
         return null;
     }
+
     public void changeUserPassword(User user, String newPassword) {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
