@@ -28,13 +28,10 @@ public class ApplicationService {
 
     @Autowired
     private ApplicationRepository applicationRepository;
-
     @Autowired
     private OfferRepository offerRepository;
-
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private FileStorageService fileStorageService;
 
@@ -259,16 +256,6 @@ public class ApplicationService {
         return dtos;
     }
 
-    /*@Transactional(readOnly = true)
-    public List<RhApplicationResponseDto> getApplicationsByOfferWithMinSimilarity(
-            Long offerId, double minScore) throws IOException {
-
-        return getApplicationsByOfferWithSimilarity(offerId).stream()
-                .filter(dto -> dto.getSimilarityScore() != null
-                        && dto.getSimilarityScore() >= minScore)
-                .collect(Collectors.toList());
-    }*/
-
     @Transactional(readOnly = true)
     public List<CandidateApplicationWithScoreDto> getApplicationsByCandidateWithSimilarity(String username) {
 
@@ -314,7 +301,6 @@ public class ApplicationService {
 
         return result;
     }
-
 
     @Transactional
     public Application createApplicationWithFiles(
@@ -399,12 +385,35 @@ public class ApplicationService {
         }
     }
 
-
     public boolean hasCandidateAppliedToOffer(String username, Long offerId) {
         User candidate = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
         Offer offer = offerRepository.findById(offerId)
                 .orElseThrow(() -> new RuntimeException("Offre non trouvée"));
         return applicationRepository.existsByOfferAndCandidate(offer, candidate);
+    }
+
+    @Transactional
+    public void deleteApplication(Long applicationId, String username) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Candidature non trouvée"));
+
+        if (!application.getCandidate().getUsername().equals(username)) {
+            throw new RuntimeException("Vous n'êtes pas autorisé à supprimer cette candidature");
+        }
+
+        try {
+            if (application.getCvPath() != null) {
+                fileStorageService.deleteFile(application.getCvPath());
+            }
+            if (application.getCoverLetterPath() != null) {
+                fileStorageService.deleteFile(application.getCoverLetterPath());
+            }
+        } catch (IOException e) {
+
+            System.err.println("Erreur suppression fichiers : " + e.getMessage());
+        }
+
+        applicationRepository.delete(application);
     }
 }

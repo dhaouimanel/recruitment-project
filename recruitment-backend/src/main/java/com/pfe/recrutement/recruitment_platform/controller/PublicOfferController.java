@@ -18,12 +18,10 @@ public class PublicOfferController {
         this.offerService = offerService;
     }
 
-
     @GetMapping
     public ResponseEntity<List<Offer>> getPublishedOffers() {
         return ResponseEntity.ok(offerService.getPublishedOffers());
     }
-
 
     @GetMapping("/{id}")
     public ResponseEntity<Offer> getOfferById(@PathVariable Long id) {

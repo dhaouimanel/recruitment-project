@@ -10,4 +10,7 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
 
     List<Offer> findByLocationIgnoreCaseContaining(String location);
     List<Offer> findByPublishedAndLocationIgnoreCaseContaining(boolean published, String location);
+    List<Offer> findAllByOrderByIdDesc();
+
+    List<Offer> findAllByOrderByIdAsc();
 }

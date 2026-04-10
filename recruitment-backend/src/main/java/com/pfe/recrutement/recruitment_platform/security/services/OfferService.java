@@ -13,13 +13,10 @@ public class OfferService {
 
     @Autowired
     private OllamaEmbeddingService embeddingService;
-
     private final OfferRepository offerRepository;
-
     public OfferService(OfferRepository offerRepository) {
         this.offerRepository = offerRepository;
     }
-
     @Transactional
     public void initEmbeddings() {
         List<Offer> offers = offerRepository.findAll();
@@ -46,7 +43,7 @@ public class OfferService {
         return offerRepository.save(offer);
     }
     public List<Offer> getAllOffers() {
-        return offerRepository.findAll();
+        return offerRepository.findAllByOrderByIdAsc();
     }
     public List<Offer> getPublishedOffers() {
         return offerRepository.findByPublished(true);

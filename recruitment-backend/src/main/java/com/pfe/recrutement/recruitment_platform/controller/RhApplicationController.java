@@ -27,13 +27,11 @@ public class RhApplicationController {
     @Autowired
     private ApplicationService applicationService;
 
-
     @GetMapping
     public ResponseEntity<List<Application>> getAllApplications() {
         List<Application> applications = applicationService.getAllApplicationsForRh();
         return ResponseEntity.ok(applications);
     }
-
 
     @GetMapping("/by-offer/{offerId}")
     public ResponseEntity<?> getApplicationsByOffer(
@@ -88,7 +86,6 @@ public class RhApplicationController {
         }
     }
 
-
     @PatchMapping("/{applicationId}/status")
     public ResponseEntity<Application> updateApplicationStatus(
             @PathVariable Long applicationId,
@@ -102,8 +99,6 @@ public class RhApplicationController {
 
         return ResponseEntity.ok(updatedApplication);
     }
-
-
 
     @GetMapping("/{applicationId}/cv")
     public ResponseEntity<byte[]> downloadCv(@PathVariable Long applicationId) {
@@ -127,7 +122,6 @@ public class RhApplicationController {
         }
     }
 
-
     @GetMapping("/{applicationId}/cover-letter")
     public ResponseEntity<byte[]> downloadCoverLetter(@PathVariable Long applicationId) {
         try {
@@ -150,13 +144,11 @@ public class RhApplicationController {
         }
     }
 
-
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getApplicationsStats() {
         Map<String, Object> stats = applicationService.getApplicationsStatistics();
         return ResponseEntity.ok(stats);
     }
-
 
     @PostMapping("/regenerate-embeddings/{offerId}")
     public ResponseEntity<String> regenerateEmbeddingsForOffer(@PathVariable Long offerId) {

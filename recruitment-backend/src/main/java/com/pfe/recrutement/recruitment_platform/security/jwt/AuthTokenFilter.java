@@ -29,7 +29,6 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
 
-    // Liste des chemins publics (doit correspondre à ceux définis dans WebSecurityConfig)
     private static final List<String> PUBLIC_PATHS = Arrays.asList(
             "/api/auth/signin",
             "/api/auth/signup",
@@ -50,7 +49,6 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         try {
             String path = request.getRequestURI();
 
-            // Vérification manuelle des chemins publics
             if (isPublicPath(path)) {
                 logger.debug("🔓 Chemin public détecté : {}, poursuite sans validation JWT", path);
                 chain.doFilter(request, response);
@@ -95,8 +93,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        // Cette méthode est conservée mais la vérification est déjà faite dans doFilterInternal
-        // Elle peut être supprimée si on lui fait confiance, mais on garde les deux pour plus de sûreté.
+
         String path = request.getRequestURI();
         return path.equals("/api/auth/signin") ||
                 path.equals("/api/auth/signup") ||

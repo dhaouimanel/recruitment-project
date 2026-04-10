@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(readOnly = true)
 public class StatisticsService {
-
     @Autowired
     private OfferRepository offerRepository;
     @Autowired

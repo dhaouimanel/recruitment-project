@@ -16,16 +16,12 @@ import java.util.Date;
 
 @Service
 public class PasswordResetService {
-
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private PasswordResetTokenRepository tokenRepository;
-
     @Autowired
     private JavaMailSender mailSender;
-
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -46,9 +42,10 @@ public class PasswordResetService {
         message.setTo(email);
         message.setSubject("Réinitialisation de votre mot de passe");
 
-        // On change le format : /reset-password/TOKEN au lieu de ?token=TOKEN
-        String link = "http://localhost:4200/#/reset-password/" + token;
-        message.setText("Pour réinitialiser votre mot de passe, cliquez sur le lien suivant : " + link);
+        String url = "http://localhost:4200/reset-password/" + token;
+
+        message.setText("Pour réinitialiser votre mot de passe, cliquez sur le lien suivant : " + url);
+
         mailSender.send(message);
     }
 

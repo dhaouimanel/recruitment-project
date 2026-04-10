@@ -10,7 +10,6 @@ import java.io.IOException;
 @Service
 public class TextExtractionService {
     private final Tika tika = new Tika();
-
     public String extractText(MultipartFile file) throws IOException {
         try {
             return tika.parseToString(file.getInputStream());

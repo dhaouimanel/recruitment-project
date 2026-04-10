@@ -11,12 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class OllamaEmbeddingService {
-
-
     private final Map<String, float[]> cache = new ConcurrentHashMap<>();
-
     private final RestClient restClient;
-
     @Value("${ollama.url:http://localhost:11434}")
     private String ollamaUrl;
 

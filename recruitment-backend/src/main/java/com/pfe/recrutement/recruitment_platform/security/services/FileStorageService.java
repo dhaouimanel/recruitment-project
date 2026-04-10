@@ -55,12 +55,10 @@ public class FileStorageService {
 
         return Files.readAllBytes(path);
     }
-
     public void deleteFile(String filePath) throws IOException {
         Path path = Paths.get(uploadDir, filePath);
         Files.deleteIfExists(path);
     }
-
     public boolean isValidFileType(MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null) {

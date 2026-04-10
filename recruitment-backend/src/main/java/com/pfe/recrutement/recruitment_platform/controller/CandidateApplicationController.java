@@ -36,8 +36,6 @@ public class CandidateApplicationController {
     private FileStorageService fileStorageService;
 
 
-
-
     @PostMapping
     public ResponseEntity<?> apply(@RequestBody ApplicationDto applicationDto,
                                    Authentication authentication) {
@@ -49,7 +47,6 @@ public class CandidateApplicationController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
-
 
     @PostMapping(value = "/with-files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> applyWithFiles(
@@ -99,11 +96,9 @@ public class CandidateApplicationController {
             throw new IllegalArgumentException(fileType + " est vide");
         }
 
-
         if (file.getSize() > 5 * 1024 * 1024) {
             throw new IllegalArgumentException(fileType + " est trop volumineux (max 5MB)");
         }
-
 
         boolean isValidType = false;
         for (String allowedType : allowedTypes) {
@@ -112,7 +107,6 @@ public class CandidateApplicationController {
                 break;
             }
         }
-
 
         String filename = file.getOriginalFilename();
         if (filename != null) {
@@ -129,7 +123,6 @@ public class CandidateApplicationController {
             throw new IllegalArgumentException("Format de " + fileType + " non supporté");
         }
     }
-
 
     @GetMapping
     public ResponseEntity<?> getMyApplications(Authentication authentication) {
@@ -204,7 +197,6 @@ public class CandidateApplicationController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
-
 
     @GetMapping("/{applicationId}/cover-letter")
     public ResponseEntity<ByteArrayResource> downloadCoverLetter(@PathVariable Long applicationId, Authentication authentication) {
@@ -296,5 +288,21 @@ public class CandidateApplicationController {
         }
     }
 
+    @DeleteMapping("/{applicationId}")
+    public ResponseEntity<?> deleteApplication(
+            @PathVariable Long applicationId,
+            Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            applicationService.deleteApplication(applicationId, username);
+            return ResponseEntity.ok(Map.of("message", "Candidature supprimée avec succès"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Erreur lors de la suppression : " + e.getMessage()));
+        }
+    }
 
 }

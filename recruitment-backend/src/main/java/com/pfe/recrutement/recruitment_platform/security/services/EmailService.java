@@ -18,10 +18,8 @@ public class EmailService {
 
     @Autowired
     private JavaMailSender mailSender;
-
     @Value("${recruitment.email.sender}")
     private String senderEmail;
-
     @Value("${recruitment.email.sender.name}")
     private String senderName;
 
@@ -65,7 +63,6 @@ public class EmailService {
             throw new RuntimeException("Erreur lors de l'envoi de l'email", e);
         }
     }
-
     private String generateInterviewEmail(ApplicationEmailDTO emailDTO) {
         System.out.println("📧 generateInterviewEmail - customData : " + emailDTO.getCustomData());
 

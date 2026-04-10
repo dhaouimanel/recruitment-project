@@ -27,7 +27,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -77,14 +76,6 @@ public class AuthController {
     @Value("${google.redirect.uri}")
     private String googleRedirectUri;
 
-    @Value("${linkedin.client.id}")
-    private String linkedinClientId;
-
-    @Value("${linkedin.client.secret}")
-    private String linkedinClientSecret;
-
-    @Value("${linkedin.redirect.uri}")
-    private String linkedinRedirectUri;
 
 
     @PostMapping("/signin")
@@ -249,92 +240,8 @@ public class AuthController {
         return response.getBody();
     }
 
-
-
-    @PostMapping("/oauth/linkedin")
-    public ResponseEntity<?> authenticateWithLinkedIn(@RequestBody OAuth2Request request) {
-        try {
-            // 1. Échanger le code contre un access token
-            String accessToken = exchangeLinkedInCode(request.getCode());
-
-            // 2. Récupérer les informations utilisateur
-            Map<String, Object> userInfo = getLinkedInUserInfo(accessToken);
-
-            String email = (String) userInfo.get("email");
-            String firstName = (String) userInfo.get("given_name");
-            String lastName = (String) userInfo.get("family_name");
-            String providerId = (String) userInfo.get("id");
-
-
-            User user = processOAuthUser(email, firstName, lastName, providerId);
-
-
-            return generateJwtResponse(user);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Erreur lors de l'authentification LinkedIn : " + e.getMessage()));
-        }
-    }
-
-    private String exchangeLinkedInCode(String code) {
-        String tokenEndpoint = "https://www.linkedin.com/oauth/v2/accessToken";
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("code", code);
-        params.add("client_id", linkedinClientId);
-        params.add("client_secret", linkedinClientSecret);
-        params.add("redirect_uri", linkedinRedirectUri);
-        params.add("grant_type", "authorization_code");
-
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-
-        ResponseEntity<Map> response = restTemplate.postForEntity(tokenEndpoint, request, Map.class);
-        return (String) response.getBody().get("access_token");
-    }
-
-    private Map<String, Object> getLinkedInUserInfo(String accessToken) {
-        // Récupérer le profil de base
-        String profileEndpoint = "https://api.linkedin.com/v2/me";
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        HttpEntity<?> entity = new HttpEntity<>(headers);
-
-        ResponseEntity<Map> profileResponse = restTemplate.exchange(profileEndpoint, HttpMethod.GET, entity, Map.class);
-        Map<String, Object> profile = profileResponse.getBody();
-
-        String emailEndpoint = "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))";
-        ResponseEntity<Map> emailResponse = restTemplate.exchange(emailEndpoint, HttpMethod.GET, entity, Map.class);
-        Map<String, Object> emailData = emailResponse.getBody();
-
-        String email = extractEmailFromLinkedInResponse(emailData);
-
-        Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("email", email);
-        userInfo.put("given_name", profile.get("localizedFirstName"));
-        userInfo.put("family_name", profile.get("localizedLastName"));
-        userInfo.put("id", profile.get("id"));
-        return userInfo;
-    }
-
-    private String extractEmailFromLinkedInResponse(Map<String, Object> emailData) {
-        try {
-            List<Map<String, Object>> elements = (List<Map<String, Object>>) emailData.get("elements");
-            if (elements != null && !elements.isEmpty()) {
-                Map<String, Object> element = elements.get(0);
-                Map<String, Object> handle = (Map<String, Object>) element.get("handle~");
-                return (String) handle.get("emailAddress");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Impossible d'extraire l'email depuis la réponse LinkedIn", e);
-        }
-        return null;
-    }
-
-
     private User processOAuthUser(String email, String firstName, String lastName, String providerId) {
-        // Vérifier si l'utilisateur existe déjà par email
+
         Optional<User> existingUser = userRepository.findByEmail(email);
         if (existingUser.isPresent()) {
             return existingUser.get();
@@ -398,32 +305,31 @@ public class AuthController {
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest updateRequest,
                                            @AuthenticationPrincipal UserDetailsImpl currentUser) {
-        // Récupérer l'utilisateur depuis la base de données
+
         User user = userRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        // Vérifier l'unicité du username s'il a changé
         if (!user.getUsername().equals(updateRequest.getUsername()) &&
                 userRepository.existsByUsername(updateRequest.getUsername())) {
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Erreur : Ce nom d'utilisateur est déjà pris"));
         }
 
-        // Vérifier l'unicité de l'email s'il a changé
+
         if (!user.getEmail().equals(updateRequest.getEmail()) &&
                 userRepository.existsByEmail(updateRequest.getEmail())) {
             return ResponseEntity.badRequest()
                     .body(new MessageResponse("Erreur : Cet email est déjà utilisé"));
         }
 
-        // Mise à jour des champs
+
         user.setFname(updateRequest.getFname());
         user.setLname(updateRequest.getLname());
         user.setUsername(updateRequest.getUsername());
         user.setEmail(updateRequest.getEmail());
         user.setPhone(updateRequest.getPhone());
 
-        // Changement de mot de passe si demandé
+
         if (updateRequest.getNewPassword() != null && !updateRequest.getNewPassword().isEmpty()) {
             if (updateRequest.getCurrentPassword() == null || updateRequest.getCurrentPassword().isEmpty()) {
                 return ResponseEntity.badRequest()
@@ -438,11 +344,12 @@ public class AuthController {
 
         userRepository.save(user);
 
-        // Générer un nouveau token avec le nouveau username
-        String newJwt = jwtUtils.generateTokenFromUsername(user.getUsername());
+        List<String> roles = user.getRoles().stream()
+                .map(role -> role.getName().name())
+                .collect(Collectors.toList());
+        String newJwt = jwtUtils.generateTokenFromUsername(user.getUsername(), roles);
         logger.debug("Nouveau token généré: {}", newJwt);
 
-        // Construire la réponse avec les informations mises à jour ET le nouveau token
         Map<String, Object> response = new HashMap<>();
         response.put("id", user.getId());
         response.put("fname", user.getFname());
@@ -457,6 +364,7 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetailsImpl currentUser) {
         User user = userRepository.findById(currentUser.getId())
@@ -473,5 +381,4 @@ public class AuthController {
                 .collect(Collectors.toList()));
         return ResponseEntity.ok(response);
     }
-
 }

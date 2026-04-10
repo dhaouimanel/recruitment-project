@@ -29,11 +29,10 @@ public class UpdateProfileRequest {
     @Size(max = 20)
     private String phone;
 
-    private String currentPassword; // optionnel, requis si newPassword est fourni
+    private String currentPassword;
 
-    private String newPassword;      // optionnel
+    private String newPassword;
 
-    // Constructeurs, getters et setters
     public UpdateProfileRequest() {}
 
     public String getFname() { return fname; }
