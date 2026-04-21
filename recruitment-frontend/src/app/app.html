@@ -1,0 +1,78 @@
+<nav class="main-nav" *ngIf="showMainNav">
+  <div class="nav-links">
+    <ng-container *ngIf="userRole === 'ROLE_ADMIN'">
+      <a routerLink="/admin" routerLinkActive="active">
+        <i class="fas fa-tachometer-alt"></i> Dashboard Admin
+      </a>
+    </ng-container>
+
+    <ng-container *ngIf="isCandidate()">
+      <a routerLink="/candidate" routerLinkActive="active">
+        <i class="fas fa-home"></i> Tableau de bord
+      </a>
+      <a routerLink="/candidate/offers-list" routerLinkActive="active">
+        <i class="fas fa-briefcase"></i> Offres disponibles
+      </a>
+      <a routerLink="/candidate/profile" routerLinkActive="active">
+        <i class="fas fa-user"></i> Mon profil
+      </a>
+    </ng-container>
+
+    <div class="user-menu">
+      <button
+        class="theme-toggle-btn"
+        (click)="themeService.toggle()"
+        [title]="themeService.isDark ? 'Mode clair' : 'Mode sombre'"
+        aria-label="Basculer le thème"
+      >
+        <i class="fas" [class.fa-sun]="themeService.isDark" [class.fa-moon]="!themeService.isDark"></i>
+      </button>
+      <div class="user-info">
+        <i class="fas fa-user-circle"></i>
+        <span [attr.data-role]="getRoleClass(userRole)">
+          {{ getRoleDisplay(userRole) }}
+        </span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+
+<nav class="public-navbar" [class.scrolled]="isScrolled" *ngIf="showPublicNav">
+  <div class="nav-links">
+    <div class="public-logo" (click)="goToOffers()">
+      <i class="fas fa-briefcase"></i>
+      <span>Recrutement de talents</span>
+    </div>
+
+    <div class="public-nav-menu">
+      <a (click)="navigateToOffers()" style="cursor: pointer">
+        <i class="fas fa-search"></i> Offres d'emploi
+      </a>
+      <a (click)="scrollToServices()" style="cursor: pointer">
+        <i class="fas fa-concierge-bell"></i> Nos Services
+      </a>
+      <a (click)="scrollToFooter()" style="cursor: pointer" title="Accéder aux informations de contact">
+        <i class="fas fa-address-card"></i> Contact
+      </a>
+      <a routerLink="/login" routerLinkActive="active">
+        <i class="fas fa-sign-in-alt"></i> Connexion
+      </a>
+      <a routerLink="/register" routerLinkActive="active">
+        <i class="fas fa-user-plus"></i> Inscription
+      </a>
+
+      <!-- ✅ BOUTON THÈME DÉPLACÉ ICI (dernier élément du menu) -->
+      <button
+        class="theme-toggle-btn"
+        (click)="themeService.toggle()"
+        [title]="themeService.isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
+        aria-label="Basculer le thème"
+      >
+        <i class="fas" [class.fa-sun]="themeService.isDark" [class.fa-moon]="!themeService.isDark"></i>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<router-outlet></router-outlet>

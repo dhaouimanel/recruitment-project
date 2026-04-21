@@ -1,0 +1,54 @@
+<div class="authenticated-layout">
+  <nav class="main-nav" *ngIf="isLoggedIn">
+    <div class="nav-links">
+      <ng-container *ngIf="userRole === 'ROLE_ADMIN'">
+        <a routerLink="/admin" routerLinkActive="active">
+          <i class="fas fa-tachometer-alt"></i> Dashboard Admin
+        </a>
+        <a routerLink="/admin/users" routerLinkActive="active">
+          <i class="fas fa-users-cog"></i> Gestion Utilisateurs
+        </a>
+      </ng-container>
+
+      <ng-container *ngIf="userRole === 'ROLE_RH'">
+        <a routerLink="/rh" routerLinkActive="active">
+          <i class="fas fa-users"></i> Dashboard RH
+        </a>
+        <a routerLink="/rh/offers" routerLinkActive="active">
+          <i class="fas fa-briefcase"></i> Offres d'emploi
+        </a>
+        <a routerLink="/rh/applications" routerLinkActive="active">
+          <i class="fas fa-file-alt"></i> Candidatures
+        </a>
+      </ng-container>
+
+      <ng-container *ngIf="isCandidate()">
+        <a routerLink="/candidate" routerLinkActive="active">
+          <i class="fas fa-home"></i> Tableau de bord
+        </a>
+        <a routerLink="/offers" routerLinkActive="active">
+          <i class="fas fa-briefcase"></i> Offres disponibles
+        </a>
+        <a routerLink="/candidate/profile" routerLinkActive="active">
+          <i class="fas fa-user"></i> Mon profil
+        </a>
+      </ng-container>
+
+      <div class="user-menu">
+        <div class="user-info">
+          <i class="fas fa-user-circle"></i>
+          <span [attr.data-role]="getRoleClass(userRole)">
+            {{ getRoleDisplay(userRole) }}
+          </span>
+        </div>
+        <button class="btn-logout" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <router-outlet></router-outlet>
+  </main>
+</div>

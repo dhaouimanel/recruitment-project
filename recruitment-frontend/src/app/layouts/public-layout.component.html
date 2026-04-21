@@ -1,0 +1,15 @@
+<nav class="main-nav">
+  <div class="nav-links">
+    <ng-container *ngIf="isLoggedIn">
+      <a *ngIf="userRole === 'ROLE_ADMIN'" routerLink="/admin"
+        >Dashboard Admin</a
+      >
+    </ng-container>
+    <ng-container *ngIf="!isLoggedIn">
+      <a routerLink="/login">Connexion</a>
+    </ng-container>
+  </div>
+</nav>
+<main>
+  <router-outlet></router-outlet>
+</main>

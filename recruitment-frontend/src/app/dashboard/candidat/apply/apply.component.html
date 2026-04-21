@@ -1,0 +1,246 @@
+<div class="apply-container">
+  <!-- Messages d'erreur / succès / session -->
+  <div class="auth-error-message" *ngIf="authError">
+    <i class="fas fa-exclamation-triangle"></i>
+    <div>
+      <h4>Problème d'authentification</h4>
+      <p>{{ authError }}</p>
+      <button class="btn btn-warning" (click)="refreshSession()">
+        <i class="fas fa-sync-alt"></i> Rafraîchir la session
+      </button>
+    </div>
+  </div>
+
+  <div class="success-message" *ngIf="successMessage">
+    <i class="fas fa-check-circle"></i> {{ successMessage }}
+    <p>Vous allez être redirigé vers votre espace candidat...</p>
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+  </div>
+
+  <header class="apply-header">
+    <div class="container">
+      <button class="btn-back" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i> Retour aux offres
+      </button>
+      <h1><i class="fas fa-paper-plane"></i> Postuler à une offre</h1>
+    </div>
+  </header>
+
+  <!-- Contenu principal toujours visible (plus d’attente de l’offre) -->
+  <div class="apply-content" *ngIf="!successMessage">
+    <div class="container">
+      <!-- Message "déjà postulé" -->
+      <div class="info-message warning" *ngIf="hasAlreadyApplied">
+        <i class="fas fa-info-circle"></i>
+        <div>
+          <h4>⚠️ Attention</h4>
+          <p>Vous avez déjà postulé à cette offre. Une nouvelle candidature remplacera la précédente.</p>
+        </div>
+      </div>
+
+      <!-- Vérification en cours (non bloquant) -->
+      <div class="info-message" *ngIf="checkingApplication && !hasAlreadyApplied">
+        <i class="fas fa-spinner fa-pulse"></i>
+        <div>
+          <h4>Vérification en cours...</h4>
+          <p>Nous vérifions votre historique de candidature.</p>
+        </div>
+      </div>
+
+      <!-- Layout principal (toujours visible) -->
+      <div class="apply-layout">
+        <!-- Sidebar offre : affiche un loader ou l’offre -->
+        <div class="offer-sidebar">
+          <div class="offer-card" *ngIf="isLoadingOffer">
+            <div class="offer-header">
+              <h2><i class="fas fa-spinner fa-pulse"></i> Chargement de l'offre...</h2>
+            </div>
+          </div>
+          <div class="offer-card" *ngIf="offer && !isLoadingOffer">
+            <div class="offer-header">
+              <h2><i class="fas fa-file-alt"></i> Détails de l'offre</h2>
+            </div>
+            <div class="offer-info">
+              <h3>{{ offer.title }}</h3>
+              <div class="info-item">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ offer.location || "Non spécifié" }}</span>
+              </div>
+              <div class="info-item">
+                <i class="far fa-calendar"></i>
+                <span>Publiée le {{ formatDate(offer.createDate) }}</span>
+              </div>
+              <div class="info-item">
+                <i class="fas fa-info-circle"></i>
+                <span>Statut: <strong>{{ offer.published ? "Publiée" : "Brouillon" }}</strong></span>
+              </div>
+            </div>
+            <div class="offer-description">
+              <h4>Description</h4>
+              <p>{{ offer.description }}</p>
+            </div>
+          </div>
+          <div class="instructions-card">
+            <h3><i class="fas fa-lightbulb"></i> Conseils de candidature</h3>
+            <ul>
+              <li>Remplissez tous les champs obligatoires (*)</li>
+              <li>Votre CV doit être au format PDF (max 5MB)</li>
+              <li>Votre lettre de motivation doit être au format PDF ou Word (max 5MB)</li>
+              <li>Personnalisez votre lettre de motivation pour cette offre</li>
+              <li>Relisez-vous avant d'envoyer votre candidature</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Formulaire candidature (toujours visible) -->
+        <div class="application-form-section">
+          <div class="form-card">
+            <div class="form-header">
+              <h2><i class="fas fa-user-edit"></i> Formulaire de candidature</h2>
+              <p>Bonjour {{ currentUser?.fname }} {{ currentUser?.lname }}, téléchargez vos documents pour postuler</p>
+            </div>
+
+            <form [formGroup]="applicationForm" (ngSubmit)="onSubmit()" class="application-form" enctype="multipart/form-data">
+              <!-- SECTION CV -->
+              <div class="form-group">
+  <label for="cvFile"><i class="fas fa-file-pdf"></i> CV pour cette candidature *</label>
+
+  <!-- CV du profil -->
+  <div *ngIf="hasExistingCv" class="existing-cv-info">
+    <i class="fas fa-check-circle text-success"></i>
+    <span>CV de votre profil : <strong>{{ existingCvName }}</strong> ({{ existingCvSize }})</span>
+    <button type="button" class="btn-cv-view" (click)="previewCv()">
+      <i class="fas fa-eye"></i> Voir
+    </button>
+    <button type="button" class="btn-cv-replace" (click)="triggerCvFileInput()">
+      <i class="fas fa-sync-alt"></i> Remplacer
+    </button>
+    <button type="button" class="btn-cv-delete" (click)="removeCvFile($event)">
+      <i class="fas fa-trash-alt"></i> Supprimer
+    </button>
+  </div>
+
+  <!-- Zone upload si pas de CV profil -->
+  <div *ngIf="!hasExistingCv" class="file-upload-area" (click)="triggerCvFileInput()">
+    <i class="fas fa-cloud-upload-alt"></i>
+    <div class="upload-text" *ngIf="!cvFileName">
+      <p>Cliquez pour uploader un nouveau CV</p>
+      <small>Format accepté: PDF (max 5MB)</small>
+    </div>
+    <div class="file-info" *ngIf="cvFileName">
+      <i class="fas fa-file-pdf"></i>
+      <div class="file-details">
+        <p class="file-name">{{ cvFileName }}</p>
+        <p class="file-size">{{ cvFileSize }}</p>
+      </div>
+      <button type="button" class="btn-remove" (click)="removeCvFile($event)">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- CV des candidatures précédentes -->
+  <div *ngIf="showPreviousCvs" class="previous-cvs-section">
+    <h5><i class="fas fa-history"></i> Ou choisir depuis vos candidatures précédentes</h5>
+    <div *ngFor="let prev of previousCvs"
+         class="prev-cv-item"
+         [class.selected]="selectedPreviousCvId === prev.applicationId"
+         (click)="selectPreviousCv(prev)">
+      <div class="prev-cv-radio">
+        <span [class.checked]="selectedPreviousCvId === prev.applicationId"></span>
+      </div>
+      <i class="fas fa-file-pdf"></i>
+      <div class="prev-cv-info">
+        <p class="prev-cv-name">{{ prev.cvFileName }}</p>
+        <p class="prev-cv-meta">Utilisé pour : {{ prev.offerTitle }} · {{ prev.applicationDate }}</p>
+      </div>
+      <button type="button" class="btn-cv-view btn-sm"
+              (click)="previewPreviousCv(prev.applicationId, $event)">
+        <i class="fas fa-eye"></i>
+      </button>
+    </div>
+  </div>
+
+  <input id="cvFile" type="file" accept=".pdf"
+         (change)="onCvFileSelected($event)" #cvFileInput style="display: none" />
+  <div class="error" *ngIf="cvFileError">
+    <i class="fas fa-exclamation-circle"></i> {{ cvFileError }}
+  </div>
+</div>
+
+              <!-- SECTION LETTRE DE MOTIVATION (inchangée) -->
+              <div class="form-group">
+                <label for="coverLetterFile"><i class="fas fa-file-word"></i> Télécharger votre lettre de motivation * (.pdf,Word)</label>
+                <div class="file-upload-area" [class.has-file]="coverLetterFileName" (click)="triggerCoverLetterFileInput()">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                  <div class="upload-text" *ngIf="!coverLetterFileName">
+                    <p>Cliquez pour sélectionner votre lettre de motivation</p>
+                    <small>Formats acceptés: PDF (max 5MB)</small>
+                  </div>
+                  <div class="file-info" *ngIf="coverLetterFileName">
+                    <i class="fas" [class.fa-file-pdf]="isPdfFile(coverLetterFileName)" [class.fa-file-word]="isWordFile(coverLetterFileName)"></i>
+                    <div class="file-details">
+                      <p class="file-name">{{ coverLetterFileName }}</p>
+                      <p class="file-size">{{ coverLetterFileSize }}</p>
+                    </div>
+                    <button type="button" class="btn-remove" (click)="removeCoverLetterFile($event)">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+                <input id="coverLetterFile" type="file" accept=".pdf,.doc,.docx" (change)="onCoverLetterFileSelected($event)" #coverLetterFileInput style="display: none" />
+                <div class="error" *ngIf="coverLetterFileError"><i class="fas fa-exclamation-circle"></i> {{ coverLetterFileError }}</div>
+                <div class="help-text"><i class="fas fa-info-circle"></i> Votre lettre de motivation doit être personnalisée pour cette offre</div>
+              </div>
+
+              <!-- Message optionnel -->
+              <div class="form-group">
+                <label for="message"><i class="fas fa-comment"></i> Message complémentaire (optionnel)</label>
+                <textarea id="message" formControlName="message" placeholder="Ajoutez un message complémentaire si nécessaire..." rows="4"></textarea>
+                <div class="character-count">{{ applicationForm.get("message")?.value?.length || 0 }} caractères</div>
+              </div>
+
+              <!-- Aperçu fichiers -->
+              <div class="files-preview" *ngIf="cvFileName || coverLetterFileName">
+                <h4><i class="fas fa-eye"></i> Aperçu de vos documents</h4>
+                <div class="preview-list">
+                  <div class="preview-item" *ngIf="cvFileName">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>{{ cvFileName }}</span>
+                    <span class="file-size">{{ cvFileSize }}</span>
+                  </div>
+                  <div class="preview-item" *ngIf="coverLetterFileName">
+                    <i class="fas" [class.fa-file-pdf]="isPdfFile(coverLetterFileName)" [class.fa-file-word]="isWordFile(coverLetterFileName)"></i>
+                    <span>{{ coverLetterFileName }}</span>
+                    <span class="file-size">{{ coverLetterFileSize }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" (click)="goBack()" [disabled]="isLoading">
+                  <i class="fas fa-times"></i> Annuler
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="applicationForm.invalid || (!hasExistingCv && !cvFile) || !coverLetterFile || isLoading || isLoadingOffer">
+                  <i class="fas fa-paper-plane"></i> {{ isLoading ? "Envoi en cours..." : "Envoyer ma candidature" }}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="privacy-notice">
+            <i class="fas fa-shield-alt"></i>
+            <div>
+              <h4>Confidentialité garantie</h4>
+              <p>Vos documents sont sécurisés et ne seront utilisés que pour le processus de recrutement.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

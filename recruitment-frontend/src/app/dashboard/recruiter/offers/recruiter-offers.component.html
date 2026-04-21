@@ -1,0 +1,16 @@
+<div class="offers-header">
+  <h2>Gestion des offres</h2>
+  <button
+    class="btn btn-warning"
+    (click)="generateEmbeddings()"
+    [disabled]="isGenerating">
+    <i class="fas fa-magic"></i>
+    {{ isGenerating ? 'Génération...' : 'Générer les embeddings' }}
+  </button>
+</div>
+
+<div *ngIf="message" class="alert" [class.alert-success]="!message.includes('Erreur')" [class.alert-danger]="message.includes('Erreur')">
+  {{ message }}
+</div>
+
+

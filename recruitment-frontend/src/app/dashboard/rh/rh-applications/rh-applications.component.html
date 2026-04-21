@@ -1,0 +1,323 @@
+<div class="rh-applications">
+  <div class="alert alert--error" *ngIf="errorMessage" role="alert">
+    <i class="fas fa-exclamation-circle"></i>
+    <span>{{ errorMessage }}</span>
+    <button
+      class="alert__close"
+      (click)="errorMessage = ''"
+      aria-label="Fermer"
+    >
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="alert alert--success" *ngIf="successMessage" role="alert">
+    <i class="fas fa-check-circle"></i>
+    <span>{{ successMessage }}</span>
+    <button
+      class="alert__close"
+      (click)="successMessage = ''"
+      aria-label="Fermer"
+    >
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <header class="page-header">
+    <button class="btn btn--back" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i>
+      <span>Retour</span>
+    </button>
+    <h1 class="page-header__title">
+      <i class="fas fa-users"></i>
+      {{
+        mode === "offer"
+          ? "Candidatures pour l'offre"
+          : "Gestion des candidatures"
+      }}
+    </h1>
+    <button
+    class="btn btn--theme"
+    (click)="themeService.toggle()"
+    [title]="themeService.isDark ? 'Mode clair' : 'Mode sombre'"
+  >
+    <i class="fas" [class.fa-sun]="themeService.isDark" [class.fa-moon]="!themeService.isDark"></i>
+  </button>
+    <div class="page-header__info" *ngIf="offer && mode === 'offer'">
+      <span class="offer-badge">
+        <i class="fas fa-briefcase"></i> {{ offer.title }}
+      </span>
+      <span class="offer-badge" *ngIf="offer.location">
+        <i class="fas fa-map-marker-alt"></i> {{ offer.location }}
+      </span>
+    </div>
+  </header>
+
+  <section class="filters-section">
+    <div class="filters-grid">
+      <div class="filter-item">
+        <label for="statusFilter" class="filter-label">
+          <i class="fas fa-filter"></i> Statut
+        </label>
+        <select
+          id="statusFilter"
+          class="filter-select"
+          [(ngModel)]="statusFilter"
+          (change)="currentPage = 1"
+        >
+          <option value="TOUS">Tous les statuts</option>
+          <option value="A_CONTACTER">À contacter</option>
+          <option value="RETENUE">Retenue</option>
+          <option value="ELIMINE">Éliminée</option>
+          <option value="RECRUTE">Recrutée</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label for="searchTerm" class="filter-label">
+          <i class="fas fa-search"></i> Rechercher
+        </label>
+        <input
+          id="searchTerm"
+          type="text"
+          class="filter-input"
+          placeholder="Nom, email ou téléphone..."
+          [(ngModel)]="searchTerm"
+          (input)="currentPage = 1"
+        />
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn btn--secondary" (click)="resetFilters()">
+          <i class="fas fa-undo-alt"></i> Réinitialiser
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div class="summary-cards" *ngIf="filteredApplications.length > 0">
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--blue">
+        <i class="fas fa-file-alt"></i>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__value">{{ filteredApplications.length }}</span>
+        <span class="stat-card__label">Candidature(s)</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--green">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__value">{{ getCountByStatus("RECRUTE") }}</span>
+        <span class="stat-card__label">Recruté(s)</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--purple">
+        <i class="fas fa-calendar-check"></i>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__value">{{ getCountByStatus("RETENUE") }}</span>
+        <span class="stat-card__label">Retenue(s)</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--red">
+        <i class="fas fa-times-circle"></i>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__value">{{ getCountByStatus("ELIMINE") }}</span>
+        <span class="stat-card__label">Éliminé(s)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-header" *ngIf="filteredApplications.length > 0">
+    <div class="results-info">
+      <i class="fas fa-list"></i>
+      Affichage de <strong>{{ getDisplayRangeStart() }}</strong> à
+      <strong>{{ getDisplayRangeEnd() }}</strong> sur
+      <strong>{{ filteredApplications.length }}</strong> candidature(s)
+    </div>
+    <div class="loading-indicator" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <span>Chargement...</span>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="applications-table" *ngIf="filteredApplications.length > 0">
+      <thead>
+        <tr>
+          <th class="col-candidate">Candidat</th>
+          <th *ngIf="mode === 'global'" class="col-offer">Offre</th>
+          <th class="col-date">Date</th>
+          <th class="col-status">Statut</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let app of getCurrentPageApplications()">
+          <td class="col-candidate">
+            <div class="candidate-info">
+              <div class="candidate-avatar">
+                <i class="fas fa-user-circle"></i>
+              </div>
+              <div class="candidate-details">
+                <div class="candidate-name">
+                  {{ app.candidate.firstName }} {{ app.candidate.lastName }}
+                </div>
+                <div class="candidate-contact">
+                  <span
+                    ><i class="fas fa-envelope"></i>
+                    {{ app.candidate.email }}</span
+                  >
+                  <span *ngIf="app.candidate.phone"
+                    ><i class="fas fa-phone"></i>
+                    {{ app.candidate.phone }}</span
+                  >
+                </div>
+                <!-- Boutons documents sophistiqués -->
+                <div class="candidate-documents">
+                  <button
+                    *ngIf="app.cvFileName"
+                    class="btn-doc"
+                    (click)="downloadCV(app)"
+                    title="Télécharger le CV"
+                  >
+                    <i class="fas fa-file-pdf"></i> CV
+                  </button>
+                  <button
+                    *ngIf="app.coverLetterFileName"
+                    class="btn-doc"
+                    (click)="downloadCoverLetter(app)"
+                    title="Télécharger la lettre de motivation"
+                  >
+                    <i class="fas fa-file-alt"></i> Lettre
+                  </button>
+                </div>
+              </div>
+            </div>
+          </td>
+
+          <td *ngIf="mode === 'global'" class="col-offer">
+            <span class="offer-title">{{ app.offerTitle }}</span>
+          </td>
+
+          <td class="col-date">
+            <div class="date-display">
+              <i class="fas fa-calendar-alt"></i>
+              <span>{{ formatDate(app.applicationDate) }}</span>
+            </div>
+          </td>
+
+          <td class="col-status">
+            <span
+              class="status-badge"
+              [ngClass]="'status-badge--' + app.status.toLowerCase()"
+            >
+              {{ getStatusLabel(app.status) }}
+            </span>
+          </td>
+
+          <td class="col-actions">
+            <div class="action-buttons">
+              <button
+                class="action-btn action-btn--accept"
+                (click)="acceptApplication(app.id)"
+                title="Recruter"
+              >
+                <i class="fas fa-check"></i>
+                <span class="action-btn__tooltip">Recruter</span>
+              </button>
+              <button
+                class="action-btn action-btn--reject"
+                (click)="rejectApplication(app.id)"
+                title="Éliminer"
+              >
+                <i class="fas fa-times"></i>
+                <span class="action-btn__tooltip">Éliminer</span>
+              </button>
+              <button
+                class="action-btn action-btn--interview"
+                (click)="scheduleInterview(app.id)"
+                title="Planifier un entretien"
+              >
+                <i class="fas fa-calendar-plus"></i>
+                <span class="action-btn__tooltip">Entretien</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div
+      class="empty-state"
+      *ngIf="filteredApplications.length === 0 && !isLoading"
+    >
+      <div class="empty-state__icon">
+        <i class="fas fa-inbox"></i>
+      </div>
+      <h3 class="empty-state__title">Aucune candidature trouvée</h3>
+      <p
+        class="empty-state__text"
+        *ngIf="statusFilter !== 'TOUS' || searchTerm"
+      >
+        Aucune candidature ne correspond à vos critères. Modifiez vos filtres.
+      </p>
+      <p
+        class="empty-state__text"
+        *ngIf="statusFilter === 'TOUS' && !searchTerm"
+      >
+        Aucune candidature n'a encore été reçue.
+      </p>
+      <button
+        class="btn btn--primary"
+        (click)="resetFilters()"
+        *ngIf="statusFilter !== 'TOUS' || searchTerm"
+      >
+        <i class="fas fa-undo-alt"></i> Réinitialiser les filtres
+      </button>
+    </div>
+  </div>
+
+  <div
+    class="pagination"
+    *ngIf="totalPages > 1 && filteredApplications.length > 0"
+  >
+    <div class="pagination__info">
+      Page {{ currentPage }} sur {{ totalPages }}
+    </div>
+    <div class="pagination__controls">
+      <button
+        class="pagination__btn"
+        (click)="prevPage()"
+        [disabled]="currentPage === 1"
+        title="Page précédente"
+      >
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="pagination__numbers">
+        <button
+          *ngFor="let p of getPageNumbers()"
+          class="pagination__number"
+          [class.pagination__number--active]="p === currentPage"
+          (click)="currentPage = p"
+        >
+          {{ p }}
+        </button>
+      </div>
+      <button
+        class="pagination__btn"
+        (click)="nextPage()"
+        [disabled]="currentPage === totalPages"
+        title="Page suivante"
+      >
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,93 @@
+<div class="offers-container">
+  <div class="header-section">
+    <button class="btn-back" (click)="goBack()">
+      <i class="bi bi-arrow-left"></i>
+    </button>
+    <h2>Gestion des offres</h2>
+    <button
+      class="btn-theme"
+      (click)="themeService.toggle()"
+      [title]="themeService.isDark ? 'Mode clair' : 'Mode sombre'"
+    >
+      <i class="bi" [class.bi-sun]="themeService.isDark" [class.bi-moon]="!themeService.isDark"></i>
+    </button>
+  </div>
+
+  <div class="search-section">
+    <div class="search-wrapper">
+      <i class="bi bi-search search-icon"></i>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Rechercher par titre, lieu ou description..."
+        [(ngModel)]="searchTerm"
+        (input)="filterOffers()"
+      />
+    </div>
+    <span class="results-count"
+      >{{ filteredOffers.length }} offre(s) trouvée(s)</span
+    >
+  </div>
+
+  <div *ngIf="isLoading" class="loader-container">
+    <div class="spinner"></div>
+    <p>Chargement des offres...</p>
+  </div>
+
+  <div *ngIf="!isLoading" class="offers-grid">
+    <div *ngFor="let offer of filteredOffers; let i = index" class="offer-card">
+      <div class="card-header">
+        <span
+          class="badge-status"
+          [class.published]="offer.published"
+          [class.draft]="!offer.published"
+        >
+          <i
+            class="bi"
+            [class.bi-eye]="offer.published"
+            [class.bi-eye-slash]="!offer.published"
+          ></i>
+          {{ offer.published ? "Publiée" : "Brouillon" }}
+        </span>
+        <span class="offer-id">#{{ i + 1 }}</span>
+      </div>
+      <div class="card-body">
+        <h3 class="offer-title">{{ offer.title }}</h3>
+        <p class="offer-location">
+          <i class="bi bi-geo-alt"></i> {{ offer.location || "Non spécifié" }}
+        </p>
+        <p class="offer-description">
+          {{ offer.description | slice: 0 : 100 }}...
+        </p>
+        <p class="offer-date">
+          <i class="bi bi-calendar"></i> Créée le
+          {{ formatDate(offer.createDate) }}
+        </p>
+      </div>
+      <div class="card-footer">
+        <button class="btn-outline-modern" (click)="viewOfferDetails(offer)">
+          <i class="bi bi-eye"></i> Détails
+        </button>
+        <button
+          class="btn-outline-modern"
+          (click)="viewApplications(offer.id!)"
+        >
+          <i class="bi bi-people"></i> Candidatures
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!isLoading && filteredOffers.length === 0" class="empty-state">
+    <i class="bi bi-inbox"></i>
+    <p>Aucune offre trouvée.</p>
+  </div>
+
+  <app-offer-details-modal
+    *ngIf="selectedOfferForModal"
+    [offer]="selectedOfferForModal"
+    [mode]="modalMode"
+    (close)="onCloseModal()"
+    (save)="onOfferSaved($event)"
+  ></app-offer-details-modal>
+</div>

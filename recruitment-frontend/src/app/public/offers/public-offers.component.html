@@ -1,0 +1,635 @@
+<div class="public-offers-container">
+  <div class="success-message" *ngIf="successMessage">
+    <i class="fas fa-check-circle"></i> {{ successMessage }}
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+  </div>
+
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Chargement en cours...</p>
+  </div>
+
+  <header class="public-header">
+    <div class="container">
+      <div class="header-main">
+        <div class="hero-content">
+          <h1>
+            Trouvez l'emploi <span class="highlight">qui vous correspond</span>
+          </h1>
+          <p class="subtitle">
+            Accédez à des milliers d'offres d'emploi et postulez en quelques
+            clics
+          </p>
+
+          <div class="hero-stats">
+            <div class="stat-item">
+              <i class="fas fa-building"></i>
+              <div>
+                <span class="stat-number">{{ offers.length }}+</span>
+                <span class="stat-label">Offres disponibles</span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-check-circle"></i>
+              <div>
+                <span class="stat-number">98%</span>
+                <span class="stat-label">Satisfaction candidats</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="services-section" class="services-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Nos Services Professionnels</h2>
+       <!-- <p>
+          Découvrez pourquoi les entreprises nous font confiance pour leur
+          recrutement
+        </p>-->
+      </div>
+
+      <div class="services-carousel">
+        <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-search"></i>
+          </div>
+          <h3>Recrutement Intelligent</h3>
+          <p>
+            Notre algorithme avancé match les candidats avec les postes qui
+            correspondent vraiment à leurs compétences
+          </p>
+          <ul class="service-features">
+            <li><i class="fas fa-check"></i> Matching intelligent</li>
+            <li><i class="fas fa-check"></i> Pré-sélection automatisée</li>
+            <li><i class="fas fa-check"></i> Analyse de compétences</li>
+          </ul>
+        </div>
+
+        <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-user-tie"></i>
+          </div>
+          <h3>Gestion des Talents</h3>
+          <p>
+            Plateforme complète pour gérer l'ensemble du processus de
+            recrutement et de développement des talents
+          </p>
+          <ul class="service-features">
+            <li><i class="fas fa-check"></i> Pipeline de recrutement</li>
+            <li><i class="fas fa-check"></i> Suivi des candidats</li>
+            <li><i class="fas fa-check"></i> Analytics avancés</li>
+          </ul>
+        </div>
+
+        <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h3>Analytics RH</h3>
+          <p>
+            Tableaux de bord et rapports détaillés pour optimiser votre
+            stratégie de recrutement
+          </p>
+          <ul class="service-features">
+            <li><i class="fas fa-check"></i> Métriques en temps réel</li>
+            <li><i class="fas fa-check"></i> Prévisions de recrutement</li>
+            <li><i class="fas fa-check"></i> Rapports personnalisés</li>
+          </ul>
+        </div>
+
+        <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <h3>Sécurité & Conformité</h3>
+          <p>
+            Protection des données et conformité RGPD pour une gestion RH
+            sécurisée et légale
+          </p>
+          <ul class="service-features">
+            <li><i class="fas fa-check"></i> Chiffrement des données</li>
+            <li><i class="fas fa-check"></i> Conformité RGPD</li>
+            <li><i class="fas fa-check"></i> Audit de sécurité</li>
+          </ul>
+        </div>
+
+        <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-bullhorn"></i>
+          </div>
+          <h3>Diffusion Multi-canal</h3>
+          <p>
+            Publiez vos offres sur plus de 50 plateformes de recrutement et
+            réseaux sociaux
+          </p>
+          <ul class="service-features">
+            <li><i class="fas fa-check"></i> LinkedIn, Indeed, Glassdoor</li>
+            <li><i class="fas fa-check"></i> Réseaux sociaux</li>
+            <li><i class="fas fa-check"></i> Sites spécialisés</li>
+          </ul>
+        </div>
+
+        <div class="service-card">
+          <div class="service-icon">
+            <i class="fas fa-comments"></i>
+          </div>
+          <h3>Support Personnalisé</h3>
+          <p>
+            Un conseiller dédié vous accompagne tout au long de votre processus
+            de recrutement
+          </p>
+          <ul class="service-features">
+            <li><i class="fas fa-check"></i> Conseiller dédié</li>
+            <li><i class="fas fa-check"></i> Assistance 7j/7</li>
+            <li><i class="fas fa-check"></i> Formations gratuites</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="search-section">
+    <div class="container">
+      <div class="search-card">
+        <h2><i class="fas fa-search"></i> Rechercher une offre</h2>
+        <p>Trouvez l'offre qui correspond à vos compétences</p>
+
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input
+            type="text"
+            placeholder="Rechercher par titre, description ou localisation..."
+            [(ngModel)]="searchTerm"
+            (input)="filterOffers()"
+          />
+        </div>
+
+        <div class="similarity-filter" *ngIf="searchTerm.trim()">
+          <label>
+            <i class="fas fa-filter"></i> Pertinence minimale :
+            <span class="threshold-value"
+              >{{ similarityThreshold * 100 }}%</span
+            >
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            [(ngModel)]="similarityThreshold"
+            (input)="filterOffers()"
+            class="similarity-slider"
+          />
+          <span class="threshold-hint">
+            <i class="fas fa-info-circle"></i>
+            Affiche uniquement les offres avec un score ≥
+            {{ similarityThreshold * 100 }}%
+          </span>
+        </div>
+
+        <div class="stats-info">
+          <div class="stat">
+            <i class="fas fa-file-alt"></i>
+            <span>{{ offers.length }} offres disponibles</span>
+          </div>
+          <div class="stat" *ngIf="isLoggedIn && canApply()">
+            <i class="fas fa-check-circle"></i>
+            <span>Vous pouvez postuler à toutes les offres</span>
+          </div>
+          <div class="stat" *ngIf="!isLoggedIn">
+            <i class="fas fa-info-circle"></i>
+            <span>Connectez-vous pour postuler</span>
+          </div>
+          <div class="stat">
+            <i class="fas fa-clock"></i>
+            <span>Dernière mise à jour : {{ lastUpdateDate }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="partners-section">
+    <div class="container">
+      <h3>Ils nous font confiance</h3>
+      <div class="partners-logos">
+        <div class="partner-logo">🏢 TechCorp</div>
+        <div class="partner-logo">🚀 InnovateLabs</div>
+        <div class="partner-logo">💼 GlobalConsult</div>
+        <div class="partner-logo">📱 MobileFirst</div>
+        <div class="partner-logo">🌍 EcoSolutions</div>
+        <div class="partner-logo">⚡ PowerTech</div>
+        <div class="partner-logo">🏦 FinancePlus</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="offers-section" class="offers-section">
+    <div class="container">
+      <div class="section-header">
+        <h2><i class="fas fa-list"></i> Offres publiées</h2>
+        <p>Consultez les opportunités disponibles et postulez en ligne</p>
+      </div>
+
+      <div class="offers-grid">
+        <div
+          *ngFor="let offer of filteredOffers; let i = index"
+          class="offer-card"
+        >
+          <div class="card-header">
+            <div class="offer-badge" [class.published]="offer.published">
+              {{ offer.published ? "Publiée" : "Brouillon" }}
+            </div>
+            <div class="offer-id">#{{ i + 1 }}</div>
+          </div>
+
+          <div class="card-body">
+            <h3 class="offer-title">{{ offer.title }}</h3>
+
+            <div class="offer-location">
+              <i class="fas fa-map-marker-alt"></i>
+              <span>{{ offer.location || "Non spécifié" }}</span>
+            </div>
+
+            <div class="offer-description">
+              <p>{{ truncateText(offer.description, 120) }}</p>
+            </div>
+
+            <div class="offer-date">
+              <i class="far fa-calendar"></i>
+              <span>Publiée le {{ formatDate(offer.createDate) }}</span>
+            </div>
+            <div
+              class="offer-similarity"
+              *ngIf="offer.searchScore !== undefined && searchTerm.trim()"
+            >
+              <span
+                class="similarity-badge"
+                [style.background-color]="getSimilarityColor(offer.searchScore)"
+              >
+                {{ offer.searchScore | percent: "1.0-0" }}
+              </span>
+              <span class="similarity-label">pertinence</span>
+            </div>
+
+            <div class="offer-skills">
+              <span class="skill-tag" *ngFor="let skill of getSkills(offer)">{{
+                skill
+              }}</span>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <button
+              class="btn btn-primary"
+              (click)="navigateToApply(offer.id!)"
+              [class.disabled]="!offer.published"
+              [disabled]="!offer.published"
+              [title]="
+                !offer.published
+                  ? 'Cette offre n\'est pas publiée'
+                  : canApply()
+                    ? 'Postuler maintenant'
+                    : 'Connectez-vous pour postuler'
+              "
+            >
+              <i class="fas fa-paper-plane"></i>
+              {{ canApply() ? "Postuler" : "Se connecter pour postuler" }}
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="filteredOffers.length === 0" class="no-offers">
+          <div class="no-offers-content">
+            <i class="fas fa-inbox"></i>
+            <h3>Aucune offre trouvée</h3>
+            <p *ngIf="searchTerm">
+              Aucune offre ne correspond à votre recherche. Essayez d'autres
+              termes.
+            </p>
+            <p *ngIf="!searchTerm">
+              Aucune offre n'est disponible pour le moment. Revenez plus tard!
+            </p>
+            <button
+              class="btn btn-secondary"
+              (click)="searchTerm = ''; filterOffers()"
+              *ngIf="searchTerm"
+            >
+              <i class="fas fa-times"></i> Effacer la recherche
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="newsletter-section" *ngIf="!isLoggedIn">
+        <div class="newsletter-card">
+          <i class="fas fa-envelope-open-text newsletter-icon"></i>
+          <h3>Ne ratez aucune opportunité</h3>
+          <p>
+            Inscrivez-vous à notre newsletter pour recevoir les nouvelles offres
+            par email
+          </p>
+          <div class="newsletter-form">
+            <input
+              type="email"
+              placeholder="Votre adresse email"
+              class="newsletter-input"
+            />
+            <button class="btn btn-primary" (click)="submitNewsletter()">
+              <i class="fas fa-paper-plane"></i> S'inscrire
+            </button>
+          </div>
+          <p class="newsletter-note">
+            <i class="fas fa-lock"></i> Vos données sont sécurisées.
+            Désinscription à tout moment.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact-section" class="contact-section">
+    <div class="container">
+      <div class="section-header">
+        <h2><i class="fas fa-question-circle"></i> Contact & Support</h2>
+        <p>Nous sommes là pour vous aider</p>
+      </div>
+
+      <div class="contact-grid">
+        <div class="contact-card">
+          <div class="contact-icon">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <h3>Contact par email</h3>
+          <p>support@talentrecruit.fr</p>
+          <p>Réponse sous 24h</p>
+        </div>
+
+        <div class="contact-card">
+          <div class="contact-icon">
+            <i class="fas fa-phone"></i>
+          </div>
+          <h3>Support téléphonique</h3>
+          <p>+216 456 789 12</p>
+          <p>Lundi - Vendredi, 9h-18h</p>
+        </div>
+
+        <div class="contact-card">
+          <div class="contact-icon">
+            <i class="fas fa-comments"></i>
+          </div>
+          <h3>Chat en direct</h3>
+          <p>Disponible 7j/7</p>
+          <p>Réponse instantanée</p>
+        </div>
+
+        <div class="contact-card">
+          <div class="contact-icon">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <h3>Documentation</h3>
+          <p>Guides et tutoriels</p>
+          <button
+            class="btn btn-outline btn-sm"
+            (click)="openDocumentationModal()"
+            style="cursor: pointer"
+          >
+            Consulter
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER MODERNISÉ (remplacement complet) ========== -->
+  <footer class="public-footer" id="footer-section">
+    <div class="footer-top">
+      <div class="container">
+        <div class="footer-main">
+          <div class="footer-about">
+            <div class="footer-logo">
+              <i class="fas fa-briefcase"></i>
+              <span>TalentRecruit</span>
+            </div>
+            <p class="footer-description">
+              Plateforme de recrutement innovante qui connecte les talents aux
+              meilleures opportunités professionnelles.
+            </p>
+            <div class="contact-info">
+              <div class="contact-item">
+                <i class="fas fa-phone"></i>
+                <span>+216 456 789 12</span>
+              </div>
+              <div class="contact-item">
+                <i class="fas fa-envelope"></i>
+                <span>contact@talentrecruit.fr</span>
+              </div>
+              <div class="contact-item">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>Tunisie</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-links">
+            <div class="link-column">
+              <h4 class="column-title">Navigation</h4>
+              <ul class="link-list">
+                <li>
+                  <a
+                    (click)="scrollToSection('offers-section')"
+                    class="footer-link"
+                  >
+                    <i class="fas fa-chevron-right"></i> Offres d'emploi
+                  </a>
+                </li>
+                <li>
+                  <a routerLink="/login" class="footer-link">
+                    <i class="fas fa-chevron-right"></i> Connexion
+                  </a>
+                </li>
+                <li>
+                  <a routerLink="/register" class="footer-link">
+                    <i class="fas fa-chevron-right"></i> Inscription
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div class="link-column">
+              <h4 class="column-title">Ressources</h4>
+              <ul class="link-list">
+                <li>
+                  <a
+                    (click)="scrollToSection('services-section')"
+                    class="footer-link"
+                  >
+                    <i class="fas fa-chevron-right"></i> Nos services
+                  </a>
+                </li>
+                <li>
+                  <a
+                    (click)="
+                      openModal('conseils-carriere'); $event.preventDefault()
+                    "
+                    class="footer-link"
+                  >
+                    <i class="fas fa-chevron-right"></i> Conseils carrière
+                  </a>
+                </li>
+                <li>
+                  <a
+                    (click)="
+                      openModal('telechargements'); $event.preventDefault()
+                    "
+                    class="footer-link"
+                  >
+                    <i class="fas fa-chevron-right"></i> Téléchargements
+                  </a>
+                </li>
+                <li>
+                  <a
+                    (click)="openModal('faq'); $event.preventDefault()"
+                    class="footer-link"
+                  >
+                    <i class="fas fa-chevron-right"></i> FAQ
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div class="link-column">
+              <h4 class="column-title">Légal</h4>
+              <ul class="link-list">
+                <li>
+                  <a
+                    (click)="
+                      openModal('mentions-legales'); $event.preventDefault()
+                    "
+                    class="footer-link"
+                  >
+                    <i class="fas fa-chevron-right"></i> Mentions légales
+                  </a>
+                </li>
+                <li>
+                  <a
+                    (click)="openModal('cgu'); $event.preventDefault()"
+                    class="footer-link"
+                  >
+                    <i class="fas fa-chevron-right"></i> CGU
+                  </a>
+                </li>
+                <li>
+                  <a
+                    (click)="
+                      openModal('politique-confidentialite');
+                      $event.preventDefault()
+                    "
+                    class="footer-link"
+                  >
+                    <i class="fas fa-chevron-right"></i> Politique de
+                    confidentialité
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="newsletter-section-footer">
+          <h4 class="newsletter-title">Restez informé</h4>
+          <p class="newsletter-subtitle">
+            Inscrivez-vous à notre newsletter pour recevoir les dernières offres
+          </p>
+          <div class="newsletter-form">
+            <input
+              type="email"
+              placeholder="Votre adresse email"
+              class="newsletter-input"
+            />
+            <button class="btn btn-primary" (click)="submitNewsletter()">
+              <i class="fas fa-paper-plane"></i> S'abonner
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="container">
+        <div class="copyright">
+          &copy; 2026 TalentRecruit. Tous droits réservés.
+        </div>
+
+        <div class="footer-extra">
+          <div class="social-links">
+            <a href="#" class="social-link" title="LinkedIn">
+              <i class="fab fa-linkedin-in"></i>
+            </a>
+            <a href="#" class="social-link" title="Twitter">
+              <i class="fab fa-twitter"></i>
+            </a>
+            <a href="#" class="social-link" title="Facebook">
+              <i class="fab fa-facebook-f"></i>
+            </a>
+            <a href="#" class="social-link" title="Instagram">
+              <i class="fab fa-instagram"></i>
+            </a>
+          </div>
+
+          <div class="certifications">
+            <span class="cert-badge">
+              <i class="fas fa-shield-alt"></i> Sécurisé
+            </span>
+            <span class="cert-badge"> <i class="fas fa-lock"></i> RGPD </span>
+            <span class="cert-badge">
+              <i class="fas fa-heart"></i> Made in Tunisie
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <!-- ========== FIN FOOTER MODERNISÉ ========== -->
+
+  <div
+    class="modal-overlay"
+    *ngIf="showDocumentationModal"
+    (click)="closeDocumentationModal()"
+  >
+    <div class="modal-content" (click)="stopPropagation($event)">
+      <div class="modal-header">
+        <h2><i class="fas fa-info-circle"></i> {{ modalContent?.title }}</h2>
+        <button class="modal-close" (click)="closeDocumentationModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div
+          *ngFor="let section of modalContent?.sections; let last = last"
+          class="modal-section"
+        >
+          <h3>{{ section.heading }}</h3>
+          <div *ngFor="let paragraph of section.paragraphs">
+            <p>{{ paragraph }}</p>
+          </div>
+          <hr *ngIf="!last" />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" (click)="closeDocumentationModal()">
+          <i class="fas fa-check"></i> Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

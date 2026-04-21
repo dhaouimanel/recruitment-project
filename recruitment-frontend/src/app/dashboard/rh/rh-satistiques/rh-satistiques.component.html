@@ -1,0 +1,225 @@
+<div class="stats-container">
+  <div class="alert alert--success" *ngIf="successMessage" role="alert">
+    <i class="fas fa-check-circle" aria-hidden="true"></i>
+    <span>{{ successMessage }}</span>
+    <button
+      class="alert__close"
+      (click)="successMessage = ''"
+      aria-label="Fermer"
+    >
+      <i class="fas fa-times" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="alert alert--error" *ngIf="errorMessage" role="alert">
+    <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+    <span>{{ errorMessage }}</span>
+    <button
+      class="alert__close"
+      (click)="errorMessage = ''"
+      aria-label="Fermer"
+    >
+      <i class="fas fa-times" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div
+    class="loading-overlay"
+    *ngIf="isLoading"
+    role="status"
+    aria-live="polite"
+  >
+    <div class="spinner" aria-hidden="true"></div>
+    <p>Chargement des statistiques...</p>
+  </div>
+
+  <header class="stats-header">
+  <button
+    class="btn btn--icon"
+    (click)="goBack()"
+    aria-label="Retour au tableau de bord"
+  >
+    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+    <span class="btn__text">Retour</span>
+  </button>
+  <h1 class="stats-header__title">
+    <i class="fas fa-chart-line" aria-hidden="true"></i>
+    Statistiques RH
+  </h1>
+  <div class="header-actions">
+    <button
+      class="btn btn--theme"
+      (click)="themeService.toggle()"
+      [title]="themeService.isDark ? 'Mode clair' : 'Mode sombre'"
+      aria-label="Basculer le thème"
+    >
+      <i
+        class="fas"
+        [class.fa-sun]="themeService.isDark"
+        [class.fa-moon]="!themeService.isDark"
+        aria-hidden="true"
+      ></i>
+    </button>
+    <button class="btn btn--primary" (click)="refresh()" [disabled]="isLoading">
+      <i
+        class="fas fa-sync-alt"
+        [class.fa-spin]="isLoading"
+        aria-hidden="true"
+      ></i>
+      <span class="btn__text">Actualiser</span>
+    </button>
+  </div>
+</header>
+
+  <section class="stats-cards" *ngIf="stats" aria-label="Vue d'ensemble">
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--blue">
+        <i class="fas fa-briefcase"></i>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__value">{{
+          stats.totalOffers | number: "1.0-0" : "fr"
+        }}</span>
+        <span class="stat-card__label">Offres totales</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--green">
+        <i class="fas fa-eye"></i>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__value">{{
+          stats.publishedOffers | number: "1.0-0" : "fr"
+        }}</span>
+        <span class="stat-card__label">Offres publiées</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--orange">
+        <i class="fas fa-user-friends"></i>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__value">{{
+          stats.totalApplications | number: "1.0-0" : "fr"
+        }}</span>
+        <span class="stat-card__label">Candidatures reçues</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--purple">
+        <i class="fas fa-chart-pie"></i>
+      </div>
+      <div class="stat-card__content">
+        <span class="stat-card__value">{{
+          stats.averagePerOffer | number: "1.1-1" : "fr"
+        }}</span>
+        <span class="stat-card__label">Moyenne / offre</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="stats-details" *ngIf="stats">
+    <section class="card card--status" aria-labelledby="status-title">
+      <h2 class="card__title" id="status-title">
+        <i class="fas fa-tags" aria-hidden="true"></i>
+        Répartition par statut
+      </h2>
+      <div class="status-list">
+        <div class="status-item" *ngFor="let key of getStatusKeys()">
+          <div class="status-item__header">
+            <span class="status-item__label">{{ getStatusLabel(key) }}</span>
+            <span class="status-item__count">{{
+              stats.applicationsByStatus[key] || 0
+            }}</span>
+          </div>
+          <div
+            class="progress"
+            role="progressbar"
+            [attr.aria-valuenow]="getPercentage(key)"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <div
+              class="progress__fill"
+              [style.width.%]="getPercentage(key)"
+            ></div>
+          </div>
+        </div>
+      </div>
+      <div class="conversion-rate">
+        <strong>Taux de conversion :</strong>
+        <span class="conversion-rate__value">{{ stats.conversionRate }}%</span>
+        <span
+          class="info-icon"
+          tabindex="0"
+          role="tooltip"
+          title="(Recrutées / Total candidatures)"
+          >ⓘ</span
+        >
+      </div>
+    </section>
+
+    <div class="charts-grid">
+      <section class="card card--chart" aria-labelledby="monthly-title">
+        <h2 class="card__title" id="monthly-title">
+          <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+          Évolution mensuelle
+        </h2>
+        <div class="bar-chart">
+  <div
+    class="bar-chart__item"
+    *ngFor="let item of stats.applicationsOverTime"
+  >
+    <div class="bar-chart__month">{{ item.month }}</div>
+    <div class="bar-chart__bar-container">
+      <div
+        class="bar-chart__bar"
+        [style.height.px]="(item.count / maxMonthlyCount) * 120"
+        [style.background]="'var(--accent)'"
+      ></div>
+    </div>
+    <div class="bar-chart__value">{{ item.count }}</div>
+  </div>
+</div>
+      </section>
+
+      <section class="card card--chart" aria-labelledby="locations-title">
+        <h2 class="card__title" id="locations-title">
+          <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+          Top localisations
+        </h2>
+        <div class="locations-list">
+          <div class="location-item" *ngFor="let loc of stats.topLocations">
+            <span class="location-item__name">{{ loc.location }}</span>
+            <div class="location-item__stats">
+              <span class="location-item__count">{{ loc.count }}</span>
+              <span class="location-item__percent"
+                >{{
+                  (loc.count / stats.totalOffers) * 100 | number: "1.0-0"
+                }}%</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="stats-footer">
+    <a routerLink="/rh" class="stats-footer__link">
+      <i class="fas fa-tachometer-alt" aria-hidden="true"></i>
+      Tableau de bord
+    </a>
+    <a routerLink="/rh/offers" class="stats-footer__link">
+      <i class="fas fa-briefcase" aria-hidden="true"></i>
+      Offres
+    </a>
+    <a routerLink="/rh/applications" class="stats-footer__link">
+      <i class="fas fa-user-friends" aria-hidden="true"></i>
+      Candidatures
+    </a>
+  </footer>
+</div>

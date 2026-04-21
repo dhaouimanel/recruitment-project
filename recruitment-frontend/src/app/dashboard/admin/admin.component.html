@@ -1,0 +1,718 @@
+<div class="admin-dashboard">
+  <div class="success-message" *ngIf="successMessage">
+    <i class="fas fa-check-circle"></i> {{ successMessage }}
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+  </div>
+
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Chargement en cours...</p>
+  </div>
+
+  <header class="dashboard-header">
+    <div class="header-content">
+      <h1>
+        <i class="fas fa-eye"></i> Tableau de Bord Admin - Consultation des
+        Offres
+      </h1>
+      <p class="subtitle">
+        Plateforme de recrutement - Supervision des offres RH
+      </p>
+    </div>
+    <div class="header-actions">
+      <div class="user-info">
+        <i class="fas fa-user-shield"></i>
+        <span>{{ currentUser?.username || "Administrateur" }}</span>
+      </div>
+      <button class="logout-btn" (click)="logout()">
+        <i class="fas fa-sign-out-alt"></i> Déconnexion
+      </button>
+    </div>
+  </header>
+
+  <div class="dashboard-stats">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-file-alt"></i>
+      </div>
+      <div class="stat-info">
+        <h3>{{ offers.length }}</h3>
+        <p>Offres totales</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-eye"></i>
+      </div>
+      <div class="stat-info">
+        <h3>{{ getPublishedCount() }}</h3>
+        <p>Offres publiées</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-eye-slash"></i>
+      </div>
+      <div class="stat-info">
+        <h3>{{ getUnpublishedCount() }}</h3>
+        <p>Offres brouillons</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-map-marker-alt"></i>
+      </div>
+      <div class="stat-info">
+        <h3>{{ getLocationsCount() }}</h3>
+        <p>Localisations</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-content">
+    <div class="card info-section">
+      <div class="card-header">
+        <h2><i class="fas fa-info-circle"></i> Information</h2>
+        <p class="card-subtitle">
+          En tant qu'administrateur, vous avez accès en lecture seule aux offres
+        </p>
+      </div>
+      <div class="card-body">
+        <div class="info-content">
+          <i class="fas fa-binoculars"></i>
+          <div>
+            <h4>Mode consultation uniquement</h4>
+            <p>
+              Votre rôle vous permet de superviser toutes les offres créées par
+              le département RH.
+            </p>
+            <p class="info-note">
+              <i class="fas fa-exclamation-triangle"></i>
+              Pour modifier ou créer des offres, veuillez contacter le
+              département RH.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card offers-section">
+      <div class="card-header">
+        <h2><i class="fas fa-list-alt"></i> Liste des offres d'emploi</h2>
+        <p class="card-subtitle">
+          Consultation de toutes les offres créées sur la plateforme
+        </p>
+
+        <div class="table-controls">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input
+              type="text"
+              placeholder="Rechercher une offre..."
+              [(ngModel)]="searchTerm"
+              (input)="filterOffers()"
+            />
+          </div>
+
+          <div class="filter-buttons">
+            <button
+              class="filter-btn"
+              [class.active]="filterStatus === 'all'"
+              (click)="setFilter('all')"
+            >
+              Toutes ({{ offers.length }})
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="filterStatus === 'published'"
+              (click)="setFilter('published')"
+            >
+              Publiées ({{ getPublishedCount() }})
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="filterStatus === 'drafts'"
+              (click)="setFilter('drafts')"
+            >
+              Brouillons ({{ getUnpublishedCount() }})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body table-responsive">
+        <table class="offers-table">
+          <thead>
+            <tr>
+              <th class="col-title">Titre</th>
+              <th class="col-description">Description</th>
+              <th class="col-location">Localisation</th>
+              <th class="col-status">Statut</th>
+              <th class="col-created">Créée le</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let offer of filteredOffers"
+              [class.published]="offer.published"
+              [class.draft]="!offer.published"
+            >
+              <td class="col-title">
+                <strong>{{ offer.title }}</strong>
+                <div class="offer-id">ID: #{{ offer.id }}</div>
+              </td>
+
+              <td class="col-description">
+                <div class="description-text">
+                  {{ truncateText(offer.description, 120) }}
+                </div>
+              </td>
+
+              <td class="col-location">
+                <span class="location-badge">
+                  <i class="fas fa-map-marker-alt"></i>
+                  {{ offer.location || "Non spécifié" }}
+                </span>
+              </td>
+
+              <td class="col-status">
+                <span
+                  class="status-badge"
+                  [class.published]="offer.published"
+                  [class.draft]="!offer.published"
+                >
+                  <i
+                    class="fas"
+                    [class.fa-eye]="offer.published"
+                    [class.fa-eye-slash]="!offer.published"
+                  ></i>
+                  {{ offer.published ? "Publiée" : "Brouillon" }}
+                </span>
+              </td>
+
+              <td class="col-created">
+                <span class="date-info">
+                  <i class="far fa-calendar"></i>
+                  {{ formatDate(offer.createDate) }}
+                </span>
+              </td>
+            </tr>
+
+            <tr *ngIf="filteredOffers.length === 0">
+              <td colspan="5" class="no-results">
+                <i class="fas fa-inbox"></i>
+                <p>Aucune offre trouvée</p>
+                <p *ngIf="searchTerm">
+                  Essayez de modifier vos critères de recherche
+                </p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="table-footer">
+          <div class="pagination-info">
+            Affichage de {{ filteredOffers.length }} offre(s) sur
+            {{ offers.length }}
+          </div>
+          <div class="view-info">
+            <i class="fas fa-info-circle"></i>
+            <span>Mode consultation uniquement</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="dashboard-footer">
+      <div class="footer-content">
+        <div class="brand-info">
+          <h3><i class="fas fa-shield-alt"></i> Administration Plateforme</h3>
+          <p>Supervision et audit des offres d'emploi</p>
+        </div>
+        <div class="footer-links">
+          <button class="footer-link-btn" (click)="navigateToReports()">
+            <i class="fas fa-chart-bar"></i> Rapports
+          </button>
+          <button class="footer-link-btn" (click)="navigateToContacts()">
+            <i class="fas fa-user-tie"></i> Contacts RH
+          </button>
+          <button class="footer-link-btn" (click)="navigateToSettings()">
+            <i class="fas fa-cog"></i> Paramètres système
+          </button>
+        </div>
+      </div>
+      <div class="copyright">
+        &copy; {{ currentYear }} Plateforme de Recrutement - Module
+        d'administration
+      </div>
+    </footer>
+  </div>
+
+  <div
+    class="modal-overlay"
+    *ngIf="showReportsModal"
+    (click)="closeReportsModal()"
+  >
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2><i class="fas fa-chart-bar"></i> Rapports Statistiques</h2>
+        <button class="modal-close" (click)="closeReportsModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-tabs">
+          <button
+            class="tab-btn"
+            [class.active]="activeTab === 'statistics'"
+            (click)="activeTab = 'statistics'"
+          >
+            <i class="fas fa-chart-pie"></i> Statistiques
+          </button>
+          <button
+            class="tab-btn"
+            [class.active]="activeTab === 'export'"
+            (click)="activeTab = 'export'"
+          >
+            <i class="fas fa-download"></i> Export
+          </button>
+          <button
+            class="tab-btn"
+            [class.active]="activeTab === 'preview'"
+            (click)="activeTab = 'preview'"
+          >
+            <i class="fas fa-eye"></i> Aperçu
+          </button>
+        </div>
+
+        <div class="tab-content" *ngIf="activeTab === 'statistics'">
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-value">{{ offers.length }}</div>
+              <div class="stat-label">Total offres</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ getPublishedCount() }}</div>
+              <div class="stat-label">Publiées</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ getUnpublishedCount() }}</div>
+              <div class="stat-label">Brouillons</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ getLocationsCount() }}</div>
+              <div class="stat-label">Localisations</div>
+            </div>
+          </div>
+
+          <div class="chart-container">
+            <h4><i class="fas fa-chart-line"></i> Répartition par statut</h4>
+            <div class="chart-bar">
+              <div
+                class="bar published-bar"
+                [style.width.%]="(getPublishedCount() / offers.length) * 100"
+              >
+                <span
+                  >Publiées: {{ getPublishedCount() }} ({{
+                    (getPublishedCount() / offers.length) * 100
+                      | number: "1.0-0"
+                  }}%)</span
+                >
+              </div>
+              <div
+                class="bar draft-bar"
+                [style.width.%]="(getUnpublishedCount() / offers.length) * 100"
+              >
+                <span
+                  >Brouillons: {{ getUnpublishedCount() }} ({{
+                    (getUnpublishedCount() / offers.length) * 100
+                      | number: "1.0-0"
+                  }}%)</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-content" *ngIf="activeTab === 'export'">
+          <div class="export-options">
+            <h4><i class="fas fa-file-export"></i> Options d'export</h4>
+
+            <div class="export-format">
+              <label>Format du rapport:</label>
+              <select [(ngModel)]="selectedExportFormat">
+                <option value="pdf">PDF (Recommandé)</option>
+                <option value="excel">Excel (XLSX)</option>
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+              </select>
+            </div>
+
+            <div class="export-period">
+              <label>Période:</label>
+              <select [(ngModel)]="selectedPeriod">
+                <option value="all">Toutes les données</option>
+                <option value="month">Ce mois-ci</option>
+                <option value="week">Cette semaine</option>
+                <option value="today">Aujourd'hui</option>
+              </select>
+            </div>
+
+            <div class="export-include">
+              <label>
+                <input type="checkbox" [(ngModel)]="includeDetails" />
+                Inclure les détails des offres
+              </label>
+              <label>
+                <input type="checkbox" [(ngModel)]="includeCharts" />
+                Inclure les graphiques
+              </label>
+            </div>
+
+            <div class="export-actions">
+              <button class="export-btn" (click)="generateReport()">
+                <i class="fas fa-file-download"></i> Générer le rapport
+              </button>
+              <button class="preview-btn" (click)="activeTab = 'preview'">
+                <i class="fas fa-eye"></i> Prévisualiser
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="tab-content" *ngIf="activeTab === 'preview'">
+          <div class="report-preview">
+            <h4><i class="fas fa-file-pdf"></i> Aperçu du rapport</h4>
+
+            <div class="preview-content">
+              <div class="preview-header">
+                <h3>Rapport des Offres d'Emploi</h3>
+                <p>Généré le: {{ currentDate | date: "dd/MM/yyyy HH:mm" }}</p>
+              </div>
+
+              <div class="preview-section">
+                <h5>Résumé statistique</h5>
+                <table class="preview-table">
+                  <tr>
+                    <td>Total des offres:</td>
+                    <td>
+                      <strong>{{ offers.length }}</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Offres publiées:</td>
+                    <td>
+                      <strong>{{ getPublishedCount() }}</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Offres brouillons:</td>
+                    <td>
+                      <strong>{{ getUnpublishedCount() }}</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Localisations uniques:</td>
+                    <td>
+                      <strong>{{ getLocationsCount() }}</strong>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <div class="preview-section" *ngIf="includeDetails">
+                <h5>Liste des offres ({{ filteredOffers.length }})</h5>
+                <div class="preview-offers">
+                  <div
+                    *ngFor="let offer of filteredOffers.slice(0, 5)"
+                    class="preview-offer"
+                  >
+                    <strong>{{ offer.title }}</strong> - {{ offer.location }}
+                    <span
+                      class="status-badge"
+                      [class.published]="offer.published"
+                      [class.draft]="!offer.published"
+                    >
+                      {{ offer.published ? "Publiée" : "Brouillon" }}
+                    </span>
+                  </div>
+                  <div *ngIf="filteredOffers.length > 5" class="preview-more">
+                    ... et {{ filteredOffers.length - 5 }} autres offres
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview-actions">
+              <button class="download-btn" (click)="downloadReport()">
+                <i class="fas fa-download"></i> Télécharger
+              </button>
+              <button class="print-btn" (click)="printReport()">
+                <i class="fas fa-print"></i> Imprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeReportsModal()">
+          <i class="fas fa-times"></i> Fermer
+        </button>
+        <div class="report-info">
+          <i class="fas fa-info-circle"></i> Rapport généré automatiquement
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="modal-overlay"
+    *ngIf="showSettingsModal"
+    (click)="closeSettingsModal()"
+  >
+    <div
+      class="modal-content settings-modal"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-header">
+        <h2><i class="fas fa-cog"></i> Paramètres Système</h2>
+        <button class="modal-close" (click)="closeSettingsModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="settings-tabs">
+          <button
+            class="tab-btn"
+            [class.active]="settingsTab === 'general'"
+            (click)="settingsTab = 'general'"
+          >
+            <i class="fas fa-sliders-h"></i> Général
+          </button>
+          <button
+            class="tab-btn"
+            [class.active]="settingsTab === 'notifications'"
+            (click)="settingsTab = 'notifications'"
+          >
+            <i class="fas fa-bell"></i> Notifications
+          </button>
+          <button
+            class="tab-btn"
+            [class.active]="settingsTab === 'export'"
+            (click)="settingsTab = 'export'"
+          >
+            <i class="fas fa-file-export"></i> Export
+          </button>
+          <button
+            class="tab-btn"
+            [class.active]="settingsTab === 'maintenance'"
+            (click)="settingsTab = 'maintenance'"
+          >
+            <i class="fas fa-tools"></i> Maintenance
+          </button>
+        </div>
+
+        <div class="tab-content" *ngIf="settingsTab === 'general'">
+          <div class="settings-group">
+            <h4><i class="fas fa-globe"></i> Langue et région</h4>
+
+            <div class="setting-item">
+              <label for="language">Langue de l'interface :</label>
+              <select id="language" [(ngModel)]="systemSettings.language">
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+              </select>
+            </div>
+
+            <div class="setting-item">
+              <label for="timezone">Fuseau horaire :</label>
+              <select id="timezone" [(ngModel)]="systemSettings.timezone">
+                <option value="Europe/Paris">Europe/Paris (UTC+1)</option>
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">
+                  America/New York (UTC-5)
+                </option>
+              </select>
+            </div>
+
+            <div class="setting-item">
+              <label for="dateFormat">Format des dates :</label>
+              <select id="dateFormat" [(ngModel)]="systemSettings.dateFormat">
+                <option value="dd/MM/yyyy HH:mm">dd/MM/yyyy HH:mm</option>
+                <option value="MM/dd/yyyy hh:mm a">MM/dd/yyyy hh:mm a</option>
+                <option value="yyyy-MM-dd HH:mm">yyyy-MM-dd HH:mm</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h4><i class="fas fa-columns"></i> Affichage</h4>
+
+            <div class="setting-item">
+              <label for="maxOffers">Offres par page :</label>
+              <input
+                type="number"
+                id="maxOffers"
+                [(ngModel)]="systemSettings.maxOffersPerPage"
+                min="10"
+                max="200"
+                step="10"
+              />
+            </div>
+
+            <div class="setting-item">
+              <label>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="systemSettings.autoRefresh"
+                />
+                Actualisation automatique
+              </label>
+            </div>
+
+            <div class="setting-item" *ngIf="systemSettings.autoRefresh">
+              <label for="refreshInterval">Intervalle (secondes) :</label>
+              <input
+                type="number"
+                id="refreshInterval"
+                [(ngModel)]="systemSettings.refreshInterval"
+                min="5"
+                max="300"
+                step="5"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" *ngIf="settingsTab === 'notifications'">
+          <div class="settings-group">
+            <h4><i class="fas fa-bell"></i> Préférences de notifications</h4>
+
+            <div class="setting-item">
+              <label>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="systemSettings.notifications"
+                />
+                Activer les notifications
+              </label>
+            </div>
+
+            <div class="setting-item">
+              <label>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="systemSettings.enableAuditLog"
+                />
+                Journal d'audit (log des actions administrateur)
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" *ngIf="settingsTab === 'export'">
+          <div class="settings-group">
+            <h4><i class="fas fa-download"></i> Paramètres d'export</h4>
+
+            <div class="setting-item">
+              <label>Sauvegarde automatique :</label>
+              <select [(ngModel)]="systemSettings.backupFrequency">
+                <option value="daily">Quotidienne</option>
+                <option value="weekly">Hebdomadaire</option>
+                <option value="monthly">Mensuelle</option>
+                <option value="never">Jamais</option>
+              </select>
+            </div>
+
+            <div class="setting-item">
+              <label>Formats d'export autorisés :</label>
+              <div class="checkbox-group">
+                <label *ngFor="let format of ['pdf', 'excel', 'csv', 'json']">
+                  <input
+                    type="checkbox"
+                    [checked]="systemSettings.exportFormats.includes(format)"
+                    (change)="toggleExportFormat(format, $event)"
+                  />
+                  {{ format.toUpperCase() }}
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" *ngIf="settingsTab === 'maintenance'">
+          <div class="settings-group">
+            <h4><i class="fas fa-tools"></i> Mode maintenance</h4>
+
+            <div class="warning-section">
+              <i class="fas fa-exclamation-triangle"></i>
+              <div>
+                <strong>Mode maintenance</strong>
+                <p>
+                  En activant ce mode, le tableau de bord sera inaccessible aux
+                  utilisateurs RH.
+                </p>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <label>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="systemSettings.maintenanceMode"
+                />
+                Activer le mode maintenance
+              </label>
+            </div>
+
+            <div class="setting-item">
+              <button class="danger-btn" (click)="resetToDefaultSettings()">
+                <i class="fas fa-redo"></i> Réinitialiser tous les paramètres
+              </button>
+            </div>
+
+            <div class="setting-item">
+              <button class="export-btn" (click)="exportSystemSettings()">
+                <i class="fas fa-download"></i> Exporter les paramètres
+              </button>
+            </div>
+
+            <div class="setting-item">
+              <label class="import-label">
+                <i class="fas fa-upload"></i> Importer des paramètres
+                <input
+                  type="file"
+                  accept=".json"
+                  (change)="importSystemSettings($event)"
+                  style="display: none"
+                  #fileInput
+                />
+                <button class="import-btn" (click)="fileInput.click()">
+                  Choisir un fichier
+                </button>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeSettingsModal()">
+          <i class="fas fa-times"></i> Annuler
+        </button>
+        <button
+          class="btn-primary"
+          (click)="saveSystemSettings()"
+          [disabled]="isLoading"
+        >
+          <i class="fas fa-save"></i>
+          {{ isLoading ? "Sauvegarde..." : "Sauvegarder" }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

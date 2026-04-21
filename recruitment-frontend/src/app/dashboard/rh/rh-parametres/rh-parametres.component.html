@@ -1,0 +1,145 @@
+<div class="parametres-container">
+  <div class="d-flex align-items-center mb-4">
+    <button class="btn-back" (click)="goBack()">
+      <i class="bi bi-arrow-left"></i>
+    </button>
+    <button
+      class="btn-theme ms-3"
+      (click)="themeService.toggle()"
+      [title]="themeService.isDark ? 'Mode clair' : 'Mode sombre'"
+    >
+      <i class="bi" [class.bi-sun]="themeService.isDark" [class.bi-moon]="!themeService.isDark"></i>
+    </button>
+    <h1 class="ms-3"><i class="bi bi-gear-fill"></i> Paramètres</h1>
+  </div>
+
+
+  <div
+    *ngIf="message"
+    class="alert"
+    [class.alert-success]="messageType === 'success'"
+    [class.alert-error]="messageType === 'error'"
+  >
+    <i
+      class="bi"
+      [class.bi-check-circle]="messageType === 'success'"
+      [class.bi-exclamation-circle]="messageType === 'error'"
+    ></i>
+    <span>{{ message }}</span>
+    <button class="alert-close" (click)="message = ''">
+      <i class="bi bi-x"></i>
+    </button>
+  </div>
+
+  <div class="settings-grid">
+    <div class="card settings-card">
+      <div class="card-header">
+        <i class="bi bi-person-circle"></i>
+        <h3>Informations personnelles</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>Prénom</label>
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="user.prenom"
+            placeholder="Votre prénom"
+          />
+        </div>
+        <div class="form-group">
+          <label>Nom</label>
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="user.nom"
+            placeholder="Votre nom"
+          />
+        </div>
+        <div class="form-group">
+          <label>Nom d'utilisateur</label>
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="user.username"
+            placeholder="Nom d'utilisateur"
+          />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input
+            type="email"
+            class="form-control"
+            [(ngModel)]="user.email"
+            placeholder="email@exemple.com"
+          />
+        </div>
+        <div class="form-group">
+          <label>Téléphone</label>
+          <input
+            type="tel"
+            class="form-control"
+            [(ngModel)]="user.telephone"
+            placeholder="+33 6 12 34 56 78"
+          />
+        </div>
+        <div class="form-group">
+          <label>Fonction</label>
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="user.fonction"
+            placeholder="Responsable RH"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="card settings-card">
+      <div class="card-header">
+        <i class="bi bi-shield-lock"></i>
+        <h3>Sécurité</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>Mot de passe actuel</label>
+          <input
+            type="password"
+            class="form-control"
+            [(ngModel)]="password.old"
+          />
+        </div>
+        <div class="form-group">
+          <label>Nouveau mot de passe</label>
+          <input
+            type="password"
+            class="form-control"
+            [(ngModel)]="password.new"
+          />
+        </div>
+        <div class="form-group">
+          <label>Confirmer le mot de passe</label>
+          <input
+            type="password"
+            class="form-control"
+            [(ngModel)]="password.confirm"
+          />
+        </div>
+        <div class="form-actions">
+          <button class="btn-outline-modern" (click)="changePassword()">
+            <i class="bi bi-check-lg"></i> Changer le mot de passe
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn-outline-modern" (click)="reset()">
+      <i class="bi bi-arrow-counterclockwise"></i> Annuler
+    </button>
+    <button class="btn-primary-modern" (click)="saveSettings()">
+      <i class="bi bi-check-circle"></i> Enregistrer les modifications
+    </button>
+  </div>
+</div>

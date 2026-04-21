@@ -1,0 +1,449 @@
+<div class="applications-page">
+  <!-- Messages de notification -->
+  <div class="success-message" *ngIf="successMessage">
+    <i class="fas fa-check-circle"></i> {{ successMessage }}
+  </div>
+  <div class="error-message" *ngIf="errorMessage">
+    <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+  </div>
+
+  <!-- Overlay de chargement -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Chargement de vos candidatures...</p>
+  </div>
+
+  <header class="page-header">
+    <div class="header-content">
+      <h1><i class="fas fa-list-alt"></i> Gestion de mes candidatures</h1>
+      <p class="subtitle">Suivez et gérez l'ensemble de vos candidatures</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/candidate" class="btn btn-outline">
+        <i class="fas fa-arrow-left"></i> Retour
+      </a>
+      <a routerLink="/candidate/offers/search" class="btn btn-primary">
+        <i class="fas fa-search"></i> Rechercher des offres
+      </a>
+    </div>
+  </header>
+
+  <div class="stats-grid" *ngIf="applications.length > 0">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-file-signature"></i></div>
+      <div class="stat-info">
+        <h3>{{ applications.length }}</h3>
+        <p>Total candidatures</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+      <div class="stat-info">
+        <h3>{{ pendingCount }}</h3>
+        <p>En attente</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="stat-info">
+        <h3>{{ acceptedCount }}</h3>
+        <p>Acceptées</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
+      <div class="stat-info">
+        <h3>{{ rejectedCount }}</h3>
+        <p>Rejetées</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-advanced" *ngIf="applications.length > 0">
+    <div class="stat-item">
+      <span class="stat-label">Délai moyen de réponse</span>
+      <span class="stat-value">{{ averageResponseTime }} jours</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Taux de transformation</span>
+      <span class="stat-value">{{ conversionRate }}%</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Taux de réponse</span>
+      <span class="stat-value">{{ responseRate }}%</span>
+    </div>
+  </div>
+
+  <div class="filters-section card">
+    <div class="filter-row">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          placeholder="Rechercher par titre, localisation..."
+          [(ngModel)]="searchTerm"
+          (input)="onFilterChange()"
+        />
+      </div>
+      <div class="status-filters">
+        <button
+          class="filter-btn"
+          [class.active]="statusFilter === 'all'"
+          (click)="setStatusFilter('all')"
+        >
+          Tous <span class="badge">{{ applications.length }}</span>
+        </button>
+        <button
+          class="filter-btn"
+          [class.active]="statusFilter === 'pending'"
+          (click)="setStatusFilter('pending')"
+        >
+          En attente <span class="badge">{{ pendingCount }}</span>
+        </button>
+        <button
+          class="filter-btn"
+          [class.active]="statusFilter === 'accepted'"
+          (click)="setStatusFilter('accepted')"
+        >
+          Acceptées <span class="badge">{{ acceptedCount }}</span>
+        </button>
+        <button
+          class="filter-btn"
+          [class.active]="statusFilter === 'rejected'"
+          (click)="setStatusFilter('rejected')"
+        >
+          Rejetées <span class="badge">{{ rejectedCount }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="advanced-filters" *ngIf="applications.length > 0">
+      <div class="filter-group">
+        <label><i class="fas fa-calendar-alt"></i> Période</label>
+        <select [(ngModel)]="periodFilter" (change)="onFilterChange()">
+          <option value="all">Toutes</option>
+          <option value="week">Cette semaine</option>
+          <option value="month">Ce mois</option>
+          <option value="3months">3 derniers mois</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label><i class="fas fa-sort-amount-down"></i> Trier par</label>
+        <select [(ngModel)]="sortBy" (change)="onSortChange()">
+          <option value="date">Date (récent → ancien)</option>
+          <option value="dateAsc">Date (ancien → récent)</option>
+          <option value="score">Pertinence (décroissant)</option>
+          <option value="company">Entreprise (A-Z)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="similarity-filter" *ngIf="applications.length > 0">
+      <label>
+        <i class="fas fa-filter"></i> Pertinence minimale :
+        <span class="threshold-value">{{ similarityThreshold * 100 }}%</span>
+      </label>
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        [(ngModel)]="similarityThreshold"
+        (input)="onFilterChange()"
+        class="similarity-slider"
+      />
+      <span class="threshold-hint">
+        <i class="fas fa-info-circle"></i>
+        Affiche uniquement les candidatures avec un score ≥
+        {{ similarityThreshold * 100 }}%
+      </span>
+    </div>
+  </div>
+
+  <div class="applications-table card">
+    <div
+      class="table-responsive"
+      *ngIf="filteredApplications.length > 0; else emptyState"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>Offre</th>
+            <th>Localisation</th>
+            <th>Date</th>
+            <th>Dernière activité</th>
+            <th>Statut</th>
+            <th>Pertinence</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let app of paginatedApplications">
+            <td>
+              <div class="offer-title">
+                {{ app.offer?.title || "Offre #" + app.offer?.id }}
+              </div>
+            </td>
+            <td>
+              <i class="fas fa-map-marker-alt"></i>
+              {{ app.offer?.location || "Non spécifiée" }}
+            </td>
+            <td>
+              <div>{{ helper.formatDate(app.applicationDate) }}</div>
+              <small class="days-ago">{{
+                getRelativeDate(app.applicationDate)
+              }}</small>
+            </td>
+            <td>
+              <div class="last-activity">
+                <span *ngIf="app.statusDate">
+                  {{ getRelativeDate(app.statusDate) }}
+                </span>
+                <span *ngIf="!app.statusDate">—</span>
+                <small
+                  *ngIf="isDelayed(app)"
+                  class="delay-warning"
+                  title="Relance conseillée"
+                >
+                  ⚠️ {{ getDelayText(app) }}
+                </small>
+              </div>
+            </td>
+            <td>
+              <span
+                class="status-badge"
+                [class]="helper.getStatusClass(app.status)"
+              >
+                {{ helper.getStatusLabel(app.status) }}
+              </span>
+            </td>
+            <td>
+              <div class="similarity-cell">
+                <span
+                  *ngIf="app.similarityScore !== undefined"
+                  class="similarity-badge"
+                  [style.background-color]="
+                    getSimilarityColor(app.similarityScore)
+                  "
+                >
+                  {{ app.similarityScore | percent: "1.0-0" }}
+                </span>
+                <span
+                  *ngIf="app.similarityScore === undefined"
+                  class="text-muted"
+                  >—</span
+                >
+                <i
+                  *ngIf="isBestScore(app)"
+                  class="fas fa-crown best-crown"
+                  title="Meilleure candidature"
+                ></i>
+              </div>
+            </td>
+            <td class="actions">
+              <button
+                class="btn-icon"
+                (click)="viewDetails(app)"
+                title="Voir détails"
+              >
+                <i class="fas fa-eye"></i>
+              </button>
+              <button
+                class="btn-icon"
+                (click)="downloadCv(app.id)"
+                title="Télécharger CV"
+              >
+                <i class="fas fa-file-pdf"></i>
+              </button>
+              <button
+                class="btn-icon"
+                (click)="downloadCoverLetter(app.id)"
+                title="Télécharger lettre"
+              >
+                <i class="fas fa-file-word"></i>
+              </button>
+              <button
+                class="btn-icon"
+                (click)="viewOfferIfExists(app.offer)"
+                title="Voir l'offre"
+              >
+                <i class="fas fa-external-link-alt"></i>
+              </button>
+              <button
+                class="btn-icon"
+                (click)="deleteApplication(app.id)"
+                title="Supprimer la candidature"
+                [disabled]="isDeleting"
+              >
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h3>Aucune candidature trouvée</h3>
+        <p
+          *ngIf="
+            searchTerm ||
+            statusFilter !== 'all' ||
+            similarityThreshold > 0 ||
+            periodFilter !== 'all'
+          "
+        >
+          Aucune candidature ne correspond aux filtres actuels.
+        </p>
+        <p
+          *ngIf="
+            !searchTerm &&
+            statusFilter === 'all' &&
+            similarityThreshold === 0 &&
+            periodFilter === 'all'
+          "
+        >
+          Vous n'avez pas encore postulé à des offres.
+        </p>
+        <a routerLink="/offers" class="btn btn-primary">
+          <i class="fas fa-briefcase"></i> Voir les offres
+        </a>
+      </div>
+    </ng-template>
+
+    <div class="pagination-footer" *ngIf="filteredApplications.length > 0">
+      <div class="pagination-info">
+        Affichage {{ paginationStart }} - {{ paginationEnd }} sur
+        {{ filteredApplications.length }} candidatures
+      </div>
+      <div class="pagination-controls">
+        <button
+          class="btn-pagination"
+          (click)="prevPage()"
+          [disabled]="currentPage === 1"
+        >
+          <i class="fas fa-chevron-left"></i> Précédent
+        </button>
+        <span class="page-numbers">
+          <button
+            *ngFor="let page of pageNumbers"
+            class="page-number"
+            [class.active]="page === currentPage"
+            (click)="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+        </span>
+        <button
+          class="btn-pagination"
+          (click)="nextPage()"
+          [disabled]="currentPage === totalPages"
+        >
+          Suivant <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal-overlay"
+    *ngIf="showDetailsModal && selectedApplication"
+    (click)="closeDetailsModal()"
+  >
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-file-alt"></i> Détails de la candidature</h3>
+        <button class="modal-close" (click)="closeDetailsModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-section">
+          <h4>Offre</h4>
+          <p><strong>Titre :</strong> {{ selectedApplication.offer?.title }}</p>
+          <p>
+            <strong>Entreprise :</strong>
+            {{ selectedApplication.offer?.company || "Non spécifiée" }}
+          </p>
+          <p>
+            <strong>Localisation :</strong>
+            <i class="fas fa-map-marker-alt"></i>
+            {{ selectedApplication.offer?.location || "Non spécifiée" }}
+          </p>
+          <p>
+            <strong>Description :</strong>
+            {{ selectedApplication.offer?.description || "Non disponible" }}
+          </p>
+        </div>
+        <div class="detail-section">
+          <h4>Candidature</h4>
+          <p>
+            <strong>Date :</strong>
+            {{ helper.formatDate(selectedApplication.applicationDate) }}
+          </p>
+          <p>
+            <strong>Statut :</strong>
+            <span
+              class="status-badge"
+              [class]="helper.getStatusClass(selectedApplication.status)"
+              >{{ helper.getStatusLabel(selectedApplication.status) }}</span
+            >
+          </p>
+          <p *ngIf="selectedApplication.statusDate">
+            <strong>Dernier changement :</strong>
+            {{ getRelativeDate(selectedApplication.statusDate) }}
+          </p>
+          <p *ngIf="selectedApplication.similarityScore !== undefined">
+            <strong>Pertinence :</strong>
+            <span
+              class="similarity-badge"
+              [style.background-color]="
+                getSimilarityColor(selectedApplication.similarityScore)
+              "
+              >{{
+                selectedApplication.similarityScore | percent: "1.0-0"
+              }}</span
+            >
+          </p>
+          <p *ngIf="selectedApplication.message">
+            <strong>Message :</strong> {{ selectedApplication.message }}
+          </p>
+          <p *ngIf="selectedApplication.note">
+            <strong>Note :</strong> {{ selectedApplication.note }}
+          </p>
+        </div>
+        <div
+          class="detail-section"
+          *ngIf="selectedApplication.statusHistory?.length"
+        >
+          <h4>Historique</h4>
+          <ul class="status-history">
+            <li *ngFor="let event of selectedApplication.statusHistory">
+              <span
+                class="status-badge small"
+                [class]="helper.getStatusClass(event.status)"
+                >{{ helper.getStatusLabel(event.status) }}</span
+              >
+              <span class="event-date">{{
+                event.date | date: "dd/MM/yyyy"
+              }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeDetailsModal()">
+          Fermer
+        </button>
+        <button
+          class="btn btn-primary"
+          (click)="viewOfferIfExists(selectedApplication.offer)"
+        >
+          Voir l'offre
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

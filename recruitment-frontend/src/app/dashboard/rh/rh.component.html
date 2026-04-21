@@ -1,0 +1,613 @@
+<div class="layout-container">
+  <div
+    class="sidebar"
+    [class.d-none]="isHandset && !sidebarOpen"
+    [style.width]="isHandset ? '250px' : sidebarOpen ? '250px' : '70px'"
+    [class.position-fixed]="isHandset"
+  >
+    <div class="sidebar-header">
+      <i class="bi bi-briefcase-fill"></i>
+      <span class="h5 mb-0">RH Manager</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a
+        class="nav-link"
+        [class.active]="rla?.isActive"
+        routerLink="/rh"
+        routerLinkActive="active"
+        #rla="routerLinkActive"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <i class="bi bi-speedometer2"></i>
+        <span>Tableau de bord</span>
+      </a>
+      <a
+        class="nav-link"
+        routerLink="/rh/offers"
+        routerLinkActive="active"
+        #rla1="routerLinkActive"
+      >
+        <i class="bi bi-briefcase"></i>
+        <span>Offres</span>
+      </a>
+      <a
+        class="nav-link"
+        routerLink="/rh/applications"
+        routerLinkActive="active"
+        #rla2="routerLinkActive"
+      >
+        <i class="bi bi-people"></i>
+        <span>Candidatures</span>
+      </a>
+      <a
+        class="nav-link"
+        routerLink="/rh/statistiques"
+        routerLinkActive="active"
+        #rla3="routerLinkActive"
+      >
+        <i class="bi bi-bar-chart"></i>
+        <span>Statistiques</span>
+      </a>
+      <a
+        class="nav-link"
+        routerLink="/rh/parametres"
+        routerLinkActive="active"
+        #rla4="routerLinkActive"
+      >
+        <i class="bi bi-gear"></i>
+        <span>Paramètres</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer" *ngIf="!isHandset">
+      <div class="user-info">
+        <i class="bi bi-person-circle"></i>
+        <span>{{ currentUser?.username || "Responsable RH" }}</span>
+      </div>
+      <button class="btn-logout" (click)="logout()">
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <div
+    class="main-content"
+    [style.margin-left]="isHandset ? '0' : sidebarOpen ? '' : ''"
+  >
+    <nav class="navbar">
+      <div class="navbar-container">
+        <button class="btn-toggle" (click)="toggleSidebar()" *ngIf="!isHandset">
+          <i class="bi bi-list"></i>
+        </button>
+
+        <button
+          class="btn-toggle"
+          (click)="sidebarOpen = !sidebarOpen"
+          *ngIf="isHandset"
+        >
+          <i class="bi bi-list"></i>
+        </button>
+        <span class="navbar-brand" routerLink="/rh">
+          <i class="bi bi-grid"></i>
+          <span>{{ pageTitle }}</span>
+        </span>
+
+        <div class="navbar-actions">
+          <div class="filters" *ngIf="!isHandset">
+            <select
+              class="form-select"
+              [(ngModel)]="selectedLocation"
+              (change)="applyLocationFilter()"
+            >
+              <option value="">Tous les lieux</option>
+              <option *ngFor="let loc of uniqueLocations" [value]="loc">
+                {{ loc }}
+              </option>
+            </select>
+            <select
+              class="form-select"
+              [(ngModel)]="selectedStatus"
+              (change)="applyStatusFilter()"
+            >
+              <option value="">Tous</option>
+              <option value="published">Publiées</option>
+              <option value="draft">Brouillons</option>
+            </select>
+          </div>
+          <button
+    class="btn-theme"
+    (click)="themeService.toggle()"
+    [title]="themeService.isDark ? 'Mode clair' : 'Mode sombre'"
+  >
+    <i class="bi" [class.bi-sun]="themeService.isDark" [class.bi-moon]="!themeService.isDark"></i>
+  </button>
+
+          <button
+            class="btn-refresh"
+            (click)="loadOffers()"
+            title="Rafraîchir les données"
+            [class.loading]="isLoading"
+          >
+            <i class="bi bi-arrow-repeat"></i>
+            <span>Rafraîchir</span>
+          </button>
+
+          <span class="date">{{ currentDate | date: "mediumDate" }}</span>
+
+          <div class="dropdown">
+            <button class="btn-user" data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle"></i>
+            </button>
+            <ul class="dropdown-menu">
+              <li>
+                <span class="dropdown-item-text"
+                  ><i class="bi bi-person me-2"></i
+                  >{{ currentUser?.username || "Utilisateur" }}</span
+                >
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <button class="dropdown-item" (click)="logout()">
+                  <i class="bi bi-box-arrow-right me-2"></i>Déconnexion
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content-scroll">
+      <div class="loader" *ngIf="isLoading">
+        <div class="spinner-border text-primary"></div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-col">
+          <div class="stat-card stat-card-primary">
+            <div class="stat-icon">
+              <i class="bi bi-briefcase-fill"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-title">Total offres</span>
+              <h2>{{ offers.length }}</h2>
+            </div>
+            <div class="stat-trend">
+              <i class="bi bi-arrow-up-short"></i>
+              <span>+{{ getPublishedCount() }} nouvelles</span>
+            </div>
+            <div class="progress">
+              <div
+                class="progress-bar"
+                [style.width.%]="(getPublishedCount() / offers.length) * 100"
+                *ngIf="offers.length > 0"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-col">
+          <div class="stat-card stat-card-success">
+            <div class="stat-icon">
+              <i class="bi bi-eye-fill"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-title">Publiées</span>
+              <h2>{{ getPublishedCount() }}</h2>
+            </div>
+            <div class="stat-trend">
+              <i class="bi bi-pie-chart-fill"></i>
+              <span>{{ getPublishedPercent() }}% du total</span>
+            </div>
+            <div class="progress">
+              <div
+                class="progress-bar"
+                [style.width.%]="getPublishedPercent()"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-col">
+          <div class="stat-card stat-card-danger">
+            <div class="stat-icon">
+              <i class="bi bi-eye-slash-fill"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-title">Brouillons</span>
+              <h2>{{ getUnpublishedCount() }}</h2>
+            </div>
+            <div class="stat-trend">
+              <span>En attente</span>
+              <span class="badge"
+                >{{
+                  (getUnpublishedCount() / offers.length) * 100
+                    | number: "1.0-0"
+                }}%</span
+              >
+            </div>
+            <div class="progress">
+              <div
+                class="progress-bar"
+                [style.width.%]="(getUnpublishedCount() / offers.length) * 100"
+                *ngIf="offers.length > 0"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-col">
+          <div class="stat-card stat-card-info">
+            <div class="stat-icon">
+              <i class="bi bi-geo-alt-fill"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-title">Localisations</span>
+              <h2>{{ getLocationsCount() }}</h2>
+            </div>
+            <div class="stat-trend">
+              <i class="bi bi-building"></i>
+              <span>{{ offers.length }} offres</span>
+            </div>
+            <div class="locations-note">
+              <i class="bi bi-globe2"></i> Villes disponibles
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card create-offer-card">
+        <div class="card-header">
+          <h5><i class="bi bi-plus-circle"></i> Créer une nouvelle offre</h5>
+          <small
+            >Remplissez les informations ci-dessous pour publier une
+            offre</small
+          >
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <label>Intitulé du poste</label>
+              <input
+                type="text"
+                class="form-control"
+                [(ngModel)]="newOffer.title"
+                placeholder="Ex: Développeur Full Stack"
+                required
+                #titleInput="ngModel"
+                [class.is-invalid]="titleInput.invalid && titleInput.touched"
+              />
+              <div class="invalid-feedback">Le titre est requis</div>
+              <small>Le titre doit être explicite</small>
+            </div>
+            <div class="col-md-6">
+              <label>Lieu</label>
+              <input
+                type="text"
+                class="form-control"
+                [(ngModel)]="newOffer.location"
+                placeholder="Paris, Lyon, Télétravail"
+              />
+              <small>Ville ou remote</small>
+            </div>
+          </div>
+          <div class="mt-3">
+            <label>Description détaillée</label>
+            <textarea
+              class="form-control"
+              [(ngModel)]="newOffer.description"
+              rows="5"
+              placeholder="Missions, compétences, profil recherché..."
+              required
+              #descInput="ngModel"
+              [class.is-invalid]="descInput.invalid && descInput.touched"
+            ></textarea>
+            <div class="invalid-feedback">La description est requise</div>
+          </div>
+          <div class="form-actions">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                [(ngModel)]="newOffer.published"
+                id="publishImmediately"
+              />
+              <label class="form-check-label" for="publishImmediately">
+                Publier immédiatement
+              </label>
+            </div>
+            <div class="buttons">
+              <button class="btn btn-outline-secondary" (click)="resetForm()">
+                <i class="bi bi-x-circle"></i> Réinitialiser
+              </button>
+              <button
+                class="btn btn-primary"
+                (click)="addOffer()"
+                [disabled]="!newOffer.title || !newOffer.description"
+              >
+                <i class="bi bi-send"></i> Publier l'offre
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="bi bi-list"></i> Gestion des offres</h5>
+          <small>{{ filteredOffers.length }} offre(s) disponible(s)</small>
+        </div>
+        <div class="card-body">
+          <div class="toolbar">
+            <div class="search">
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Rechercher une offre (titre, lieu...)"
+                (keyup)="applyFilter()"
+                #searchInput
+              />
+            </div>
+            <div class="export-buttons">
+              <button
+                class="btn btn-outline-primary"
+                (click)="exportToPDF()"
+                [disabled]="isExporting"
+              >
+                <i class="bi bi-file-pdf"></i> PDF
+              </button>
+              <button
+                class="btn btn-outline-success"
+                (click)="exportToExcel()"
+                [disabled]="isExporting"
+              >
+                <i class="bi bi-file-excel"></i> Excel
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="offers-table">
+              <thead>
+                <tr>
+                  <th (click)="sortBy('id')">
+                    ID
+                    <i
+                      class="bi"
+                      [class.bi-arrow-up]="
+                        sortColumn === 'id' && sortDirection === 'asc'
+                      "
+                      [class.bi-arrow-down]="
+                        sortColumn === 'id' && sortDirection === 'desc'
+                      "
+                    ></i>
+                  </th>
+                  <th (click)="sortBy('title')">Poste</th>
+                  <th (click)="sortBy('location')">Lieu</th>
+                  <th (click)="sortBy('createDate')">Créée le</th>
+                  <th (click)="sortBy('published')">Statut</th>
+                  <th>Candidatures</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let offer of paginatedOffers; let i = index">
+                  <td class="offer-id">
+                    {{ (currentPage - 1) * pageSize + i + 1 }}
+                  </td>
+                  <td>
+                    <div>
+                      <strong>{{ offer.title }}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="location">
+                      <i class="bi bi-geo-alt"></i>
+                      <span>{{ offer.location || "Non spécifié" }}</span>
+                    </div>
+                  </td>
+                  <td>{{ offer.createDate | date: "mediumDate" }}</td>
+                  <td>
+                    <span
+                      class="badge-status"
+                      [class.badge-published]="offer.published"
+                      [class.badge-draft]="!offer.published"
+                    >
+                      <i
+                        class="bi"
+                        [class.bi-eye]="offer.published"
+                        [class.bi-eye-slash]="!offer.published"
+                      ></i>
+                      {{ offer.published ? "Publiée" : "Brouillon" }}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      class="btn-applications"
+                      (click)="viewApplications(offer.id!)"
+                    >
+                      <i class="bi bi-people"></i>
+                      <span
+                        *ngIf="getApplicationsCount(offer.id) > 0"
+                        class="badge"
+                        >{{ getApplicationsCount(offer.id) }}</span
+                      >
+                    </button>
+                  </td>
+                  <td>
+                    <div class="action-buttons">
+                      <button
+                        class="btn-icon"
+                        title="Voir"
+                        (click)="viewOfferDetails(offer)"
+                      >
+                        <i class="bi bi-eye"></i>
+                      </button>
+                      <button
+                        class="btn-icon"
+                        title="Modifier"
+                        (click)="editOffer(offer)"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button
+                        class="btn-icon"
+                        title="Changer statut"
+                        (click)="toggleOfferStatus(offer)"
+                      >
+                        <i
+                          class="bi"
+                          [class.bi-eye]="!offer.published"
+                          [class.bi-eye-slash]="offer.published"
+                        ></i>
+                      </button>
+                      <button
+                        class="btn-icon"
+                        title="Supprimer"
+                        (click)="deleteOffer(offer.id!)"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+
+                      <div class="dropdown d-inline-block">
+                        <button class="btn-icon" data-bs-toggle="dropdown">
+                          <i class="bi bi-download"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li>
+                            <button
+                              class="dropdown-item"
+                              (click)="exportSingleOfferPDF(offer)"
+                            >
+                              <i class="bi bi-file-pdf me-2"></i>PDF
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              class="dropdown-item"
+                              (click)="exportSingleOfferExcel(offer)"
+                            >
+                              <i class="bi bi-file-excel me-2"></i>Excel
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="paginatedOffers.length === 0">
+                  <td colspan="6" class="text-center">
+                    <i class="bi bi-search"></i>
+                    <p>Aucune offre trouvée</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pagination-container">
+            <nav>
+              <ul class="pagination">
+                <li class="page-item" [class.disabled]="currentPage === 1">
+                  <a
+                    class="page-link"
+                    href="#"
+                    (click)="goToPage(currentPage - 1); $event.preventDefault()"
+                    >Précédent</a
+                  >
+                </li>
+                <li
+                  class="page-item"
+                  *ngFor="let page of pages"
+                  [class.active]="page === currentPage"
+                >
+                  <a
+                    class="page-link"
+                    href="#"
+                    (click)="goToPage(page); $event.preventDefault()"
+                    >{{ page }}</a
+                  >
+                </li>
+                <li
+                  class="page-item"
+                  [class.disabled]="currentPage === totalPages"
+                >
+                  <a
+                    class="page-link"
+                    href="#"
+                    (click)="goToPage(currentPage + 1); $event.preventDefault()"
+                    >Suivant</a
+                  >
+                </li>
+              </ul>
+            </nav>
+            <select
+              class="form-select"
+              [(ngModel)]="pageSize"
+              (change)="onPageSizeChange()"
+            >
+              <option [value]="5">5 par page</option>
+              <option [value]="10">10 par page</option>
+              <option [value]="20">20 par page</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modern-footer">
+        <div class="footer-content">
+          <div class="footer-copyright">
+            <i class="bi bi-c-circle"></i> 2026 RH Manager - Tous droits
+            réservés
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+</div>
+
+<div
+  class="modal fade"
+  #deleteModal
+  id="deleteConfirmModal"
+  tabindex="-1"
+  aria-labelledby="deleteConfirmModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteConfirmModalLabel">
+          Confirmation de suppression
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Fermer"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p>Êtes-vous sûr de vouloir supprimer cette offre ?</p>
+        <p class="text-danger mb-0">
+          <small>Cette action est irréversible.</small>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Annuler
+        </button>
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()">
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-offer-details-modal
+  *ngIf="selectedOfferForModal"
+  [offer]="selectedOfferForModal"
+  [mode]="modalMode"
+  (close)="selectedOfferForModal = null"
+  (save)="onOfferSaved($event)"
+></app-offer-details-modal>

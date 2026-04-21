@@ -1,0 +1,277 @@
+<div class="profile-container">
+  <header class="profile-header">
+    <div class="header-content">
+      <h1><i class="fas fa-user-edit"></i> Mon Profil</h1>
+      <p class="subtitle">
+        Consultez et modifiez vos informations personnelles
+      </p>
+    </div>
+    <button class="btn-back" (click)="goBack()" [disabled]="isLoading">
+      <i class="fas fa-arrow-left"></i> Retour
+    </button>
+  </header>
+
+  <div class="message success" *ngIf="successMessage">
+    <i class="fas fa-check-circle"></i> {{ successMessage }}
+  </div>
+  <div class="message error" *ngIf="errorMessage">
+    <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+  </div>
+
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Chargement en cours...</p>
+  </div>
+
+  <form (ngSubmit)="onSubmit()" #profileForm="ngForm" class="profile-form">
+    <section class="form-section">
+      <h2><i class="fas fa-user"></i> Informations de base</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="fname">Prénom <span class="required">*</span></label>
+          <input
+            type="text"
+            id="fname"
+            class="form-control"
+            [(ngModel)]="profile.fname"
+            name="fname"
+            required
+            #fname="ngModel"
+            [class.is-invalid]="fname.invalid && fname.touched"
+          />
+          <div class="invalid-feedback" *ngIf="fname.invalid && fname.touched">
+            Le prénom est requis
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="lname">Nom <span class="required">*</span></label>
+          <input
+            type="text"
+            id="lname"
+            class="form-control"
+            [(ngModel)]="profile.lname"
+            name="lname"
+            required
+            #lname="ngModel"
+            [class.is-invalid]="lname.invalid && lname.touched"
+          />
+          <div class="invalid-feedback" *ngIf="lname.invalid && lname.touched">
+            Le nom est requis
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="username"
+          >Nom d'utilisateur <span class="required">*</span></label
+        >
+        <input
+          type="text"
+          id="username"
+          class="form-control"
+          [(ngModel)]="profile.username"
+          name="username"
+          required
+          #username="ngModel"
+          [class.is-invalid]="username.invalid && username.touched"
+        />
+        <div
+          class="invalid-feedback"
+          *ngIf="username.invalid && username.touched"
+        >
+          Le nom d'utilisateur est requis
+        </div>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h2><i class="fas fa-envelope"></i> Coordonnées</h2>
+      <div class="form-group">
+        <label for="email">Email <span class="required">*</span></label>
+        <input
+          type="email"
+          id="email"
+          class="form-control"
+          [(ngModel)]="profile.email"
+          name="email"
+          required
+          email
+          #email="ngModel"
+          [class.is-invalid]="email.invalid && email.touched"
+        />
+        <div class="invalid-feedback" *ngIf="email.invalid && email.touched">
+          Veuillez entrer un email valide
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Téléphone <span class="required">*</span></label>
+        <div class="phone-input">
+          <select
+            class="country-code"
+            [(ngModel)]="profile.countryCode"
+            name="countryCode"
+            required
+          >
+            <option value="+216">+216 (TN)</option>
+            <option value="+33">+33 (FR)</option>
+            <option value="+1">+1 (US/CA)</option>
+            <option value="+44">+44 (UK)</option>
+            <option value="+49">+49 (DE)</option>
+            <option value="+34">+34 (ES)</option>
+            <option value="+39">+39 (IT)</option>
+            <option value="+32">+32 (BE)</option>
+            <option value="+41">+41 (CH)</option>
+            <option value="+31">+31 (NL)</option>
+            <option value="+90">+90 (TR)</option>
+            <option value="+20">+20 (EG)</option>
+            <option value="+966">+966 (SA)</option>
+            <option value="+971">+971 (AE)</option>
+            <option value="+212">+212 (MA)</option>
+            <option value="+213">+213 (DZ)</option>
+          </select>
+          <input
+            type="tel"
+            id="phone"
+            class="form-control phone-number"
+            [(ngModel)]="profile.phoneNumber"
+            name="phoneNumber"
+            required
+            #phone="ngModel"
+            [class.is-invalid]="phone.invalid && phone.touched"
+          />
+        </div>
+        <div class="invalid-feedback" *ngIf="phone.invalid && phone.touched">
+          Le numéro de téléphone est requis
+        </div>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h2><i class="fas fa-lock"></i> Sécurité</h2>
+      <p class="section-info">
+        Laissez vide si vous ne souhaitez pas changer votre mot de passe.
+      </p>
+
+      <div class="form-group">
+        <label for="currentPassword">Mot de passe actuel</label>
+        <input
+          type="password"
+          id="currentPassword"
+          class="form-control"
+          [(ngModel)]="passwords.current"
+          name="currentPassword"
+          #currentPass="ngModel"
+        />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="newPassword">Nouveau mot de passe</label>
+          <input
+            type="password"
+            id="newPassword"
+            class="form-control"
+            [(ngModel)]="passwords.new"
+            name="newPassword"
+            (input)="onPasswordChange($any($event.target).value)"
+            #newPass="ngModel"
+          />
+          <div class="password-strength" *ngIf="passwords.new">
+            <div class="strength-bar">
+              <div
+                class="strength-fill"
+                [style.width.%]="passwordStrength"
+                [class]="getPasswordStrengthClass()"
+              ></div>
+            </div>
+            <span class="strength-label">{{ getPasswordStrengthText() }}</span>
+          </div>
+          <ul class="password-requirements" *ngIf="passwords.new">
+            <li [class.valid]="hasMinLength">
+              <i
+                class="fas"
+                [class.fa-check-circle]="hasMinLength"
+                [class.fa-circle]="!hasMinLength"
+              ></i>
+              Au moins 8 caractères
+            </li>
+            <li [class.valid]="hasUpperCase">
+              <i
+                class="fas"
+                [class.fa-check-circle]="hasUpperCase"
+                [class.fa-circle]="!hasUpperCase"
+              ></i>
+              Une lettre majuscule
+            </li>
+            <li [class.valid]="hasNumber">
+              <i
+                class="fas"
+                [class.fa-check-circle]="hasNumber"
+                [class.fa-circle]="!hasNumber"
+              ></i>
+              Un chiffre
+            </li>
+            <li [class.valid]="hasSpecialChar">
+              <i
+                class="fas"
+                [class.fa-check-circle]="hasSpecialChar"
+                [class.fa-circle]="!hasSpecialChar"
+              ></i>
+              Un caractère spécial
+            </li>
+          </ul>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Confirmer le mot de passe</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            class="form-control"
+            [(ngModel)]="passwords.confirm"
+            name="confirmPassword"
+            [class.is-invalid]="
+              passwords.new &&
+              passwords.confirm &&
+              passwords.new !== passwords.confirm
+            "
+          />
+          <div
+            *ngIf="
+              passwords.new &&
+              passwords.confirm &&
+              passwords.new !== passwords.confirm
+            "
+            class="invalid-feedback"
+          >
+            Les mots de passe ne correspondent pas
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="form-actions">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="resetForm()"
+        [disabled]="isLoading"
+      >
+        <i class="fas fa-undo"></i> Annuler
+      </button>
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="
+          profileForm.invalid ||
+          isLoading ||
+          !hasChanges() ||
+          (passwords.new && passwords.new !== passwords.confirm)
+        "
+      >
+        <i class="fas fa-save"></i> Enregistrer
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,593 @@
+<div class="applications-container">
+  <div class="success-message" *ngIf="successMessage">
+    <i class="fas fa-check-circle"></i> {{ successMessage }}
+    <button class="close-message" (click)="successMessage = ''">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="error-message" *ngIf="errorMessage">
+    <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+    <button class="close-message" (click)="errorMessage = ''">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Chargement des candidatures...</p>
+  </div>
+
+ <header class="applications-header">
+  <button class="btn-back" (click)="goBack()">
+    <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+  </button>
+  <h1>
+    <i class="fas fa-users"></i> Candidatures pour l’offre : {{ offerTitle }}
+  </h1>
+
+  <!-- Groupe contenant les statistiques ET le bouton thème -->
+  <div class="header-actions">
+    <!-- Statistiques -->
+    <div class="header-stats">
+      <span class="stat"
+        ><i class="fas fa-user-friends"></i>
+        {{ getTotalApplications() }} candidature(s)</span
+      >
+    </div>
+    <!-- Bouton thème (collé après) -->
+    <button
+      class="btn-theme"
+      (click)="themeService.toggle()"
+      [title]="themeService.isDark ? 'Mode clair' : 'Mode sombre'"
+    >
+      <i class="fas" [class.fa-sun]="themeService.isDark" [class.fa-moon]="!themeService.isDark"></i>
+    </button>
+  </div>
+</header>
+
+  <div class="stats-grid">
+    <div
+      *ngFor="let status of statusOptions"
+      class="stat-card"
+      [style.border-left-color]="status.color"
+    >
+      <div class="stat-value">
+        {{ getApplicationsCountByStatus(status.value) }}
+      </div>
+      <div class="stat-label">{{ status.label }}</div>
+    </div>
+  </div>
+
+  <div class="filter-section">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input
+        type="text"
+        placeholder="Rechercher par nom, prénom, email, téléphone..."
+        [(ngModel)]="searchTerm"
+        (input)="filterApplications()"
+      />
+    </div>
+    <div class="filter-buttons">
+      <button
+        class="filter-btn"
+        [class.active]="statusFilter === 'all'"
+        (click)="statusFilter = 'all'; filterApplications()"
+      >
+        Toutes ({{ getTotalApplications() }})
+      </button>
+      <button
+        *ngFor="let status of statusOptions"
+        class="filter-btn"
+        [class.active]="statusFilter === status.value"
+        (click)="statusFilter = status.value; filterApplications()"
+        [style.background-color]="
+          statusFilter === status.value ? status.color + '20' : ''
+        "
+        [style.border-color]="status.color"
+      >
+        <i class="fas" [class]="status.icon"></i> {{ status.label }} ({{
+          getApplicationsCountByStatus(status.value)
+        }})
+      </button>
+    </div>
+  </div>
+
+  <div
+    class="similarity-filter"
+    *ngIf="applications.length > 0 && viewMode === 'all'"
+  >
+    <label
+      ><i class="fas fa-filter"></i> Pertinence minimale :
+      <span class="threshold-value"
+        >{{ similarityThreshold * 100 }}%</span
+      ></label
+    >
+    <input
+      type="range"
+      min="0"
+      max="1"
+      step="0.05"
+      [(ngModel)]="similarityThreshold"
+      (input)="filterApplications()"
+      class="similarity-slider"
+    />
+    <span class="threshold-hint"
+      ><i class="fas fa-info-circle"></i> Ne montre que les CV avec un score ≥
+      {{ similarityThreshold * 100 }}%</span
+    >
+  </div>
+
+  <div class="bulk-actions" *ngIf="filteredApplications.length > 0">
+    <button
+      class="btn-primary-modern btn-bulk-email"
+      (click)="openBulkEmailModal()"
+      [disabled]="getTopCandidates().length === 0"
+    >
+      <i class="fas fa-envelope-open-text"></i> Envoyer un email aux candidats
+      avec score > 70%
+      <span class="badge">{{ getTopCandidates().length }}</span>
+    </button>
+  </div>
+
+  <div class="view-toggle">
+    <button
+      class="btn-toggle"
+      [class.active]="viewMode === 'all'"
+      (click)="viewMode !== 'all' && toggleViewMode()"
+    >
+      <i class="fas fa-list"></i> Toutes les candidatures
+    </button>
+    <button
+      class="btn-toggle"
+      [class.active]="viewMode === 'best'"
+      (click)="viewMode !== 'best' && toggleViewMode()"
+    >
+      <i class="fas fa-crown"></i> CV adaptés (≥{{
+        similarityThreshold * 100
+      }}%)
+    </button>
+    <div class="action-bar" *ngIf="bestApplication">
+      <button
+        class="btn-primary-modern btn-convocation"
+        (click)="sendInterviewToBestCandidate()"
+      >
+        <i class="fas fa-envelope"></i> Envoyer convocation au meilleur candidat
+      </button>
+      <span class="best-candidate-info"
+        >({{ bestApplication.candidateFirstName }}
+        {{ bestApplication.candidateLastName }} - Score:
+        {{ bestApplication.similarityScore | percent: "1.0-0" }})</span
+      >
+    </div>
+  </div>
+
+  <div *ngIf="viewMode === 'best'" class="best-cv-indicator">
+    <i class="fas fa-crown"></i> Affichage des CV avec un score ≥
+    {{ similarityThreshold * 100 }}%
+  </div>
+
+  <div class="table-container-modern" *ngIf="!isLoading">
+    <table class="applications-table-modern">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Email</th>
+          <th>Téléphone</th>
+          <th>Date candidature</th>
+          <th>Statut</th>
+          <th>Documents</th>
+          <th>Pertinence</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let app of filteredApplications; let i = index">
+          <td>
+            <strong>{{ i + 1 }}</strong>
+          </td>
+          <td>
+            <strong>{{ app.candidateLastName || "Non spécifié" }}</strong>
+          </td>
+          <td>{{ app.candidateFirstName || "Non spécifié" }}</td>
+          <td>
+            <a
+              href="mailto:{{ app.candidateEmail }}"
+              class="email-link"
+              *ngIf="
+                app.candidateEmail && app.candidateEmail !== 'Non spécifié'
+              "
+              ><i class="fas fa-envelope"></i> {{ app.candidateEmail }}</a
+            >
+            <span
+              *ngIf="
+                !app.candidateEmail || app.candidateEmail === 'Non spécifié'
+              "
+              class="text-muted"
+              >Non spécifié</span
+            >
+          </td>
+          <td>
+            <span *ngIf="app.candidatePhone"
+              ><i class="fas fa-phone"></i> {{ app.candidatePhone }}</span
+            ><span *ngIf="!app.candidatePhone" class="text-muted"
+              >Non renseigné</span
+            >
+          </td>
+          <td>{{ formatDate(app.createdAt || app.applicationDate) }}</td>
+          <td>
+            <div class="status-cell">
+              <select
+                [ngModel]="app.status"
+                (change)="
+                  updateApplicationStatus(app, $any($event.target).value)
+                "
+                class="status-select"
+                [style.color]="getStatusInfo(app.status).color"
+              >
+                <option
+                  *ngFor="let status of statusOptions"
+                  [value]="status.value"
+                  [style.color]="status.color"
+                  [selected]="status.value === app.status"
+                >
+                  {{ status.label }}
+                </option>
+              </select>
+              <span
+                class="status-badge-modern"
+                [style.background]="getStatusInfo(app.status).color + '20'"
+                [style.color]="getStatusInfo(app.status).color"
+                [style.border-color]="getStatusInfo(app.status).color + '40'"
+              >
+                <i class="fas" [class]="getStatusInfo(app.status).icon"></i>
+              </span>
+            </div>
+          </td>
+          <td class="documents-cell">
+            <div class="document-buttons">
+              <button
+                *ngIf="app.cvFileName"
+                class="btn-document-modern cv"
+                (click)="downloadCV(app)"
+                title="Télécharger le CV"
+              >
+                <i class="fas fa-file-pdf"></i> CV
+              </button>
+              <button
+                *ngIf="app.coverLetterFileName"
+                class="btn-document-modern letter"
+                (click)="downloadCoverLetter(app)"
+                title="Télécharger la lettre de motivation"
+              >
+                <i class="fas fa-file-alt"></i> Lettre
+              </button>
+              <span
+                *ngIf="!app.cvFileName && !app.coverLetterFileName"
+                class="text-muted"
+                >Aucun</span
+              >
+            </div>
+          </td>
+          <td>
+            <div class="score-badge-modern">
+              <span
+                class="score-value"
+                *ngIf="app.similarityScore !== undefined"
+                [style.background]="getSimilarityColor(app.similarityScore)"
+                >{{ app.similarityScore | percent: "1.0-0" }}</span
+              >
+              <span *ngIf="app.similarityScore === undefined" class="text-muted"
+                >Non calculé</span
+              >
+              <div class="score-bar" *ngIf="app.similarityScore !== undefined">
+                <div
+                  class="fill"
+                  [style.width.%]="app.similarityScore * 100"
+                  [style.background]="getSimilarityColor(app.similarityScore)"
+                ></div>
+              </div>
+              <i
+                *ngIf="isBestScore(app)"
+                class="fas fa-crown best-crown-modern"
+                title="Meilleur CV pour cette offre"
+              ></i>
+            </div>
+          </td>
+          <td class="actions-cell">
+            <button
+              class="btn-icon-modern email"
+              title="Envoyer un email"
+              *ngIf="
+                app.candidateEmail && app.candidateEmail !== 'Non spécifié'
+              "
+              (click)="openEmailModal(app)"
+            >
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredApplications.length === 0">
+          <td colspan="10" class="no-results">
+            <div class="no-results-content">
+              <i class="fas fa-inbox"></i>
+              <p *ngIf="searchTerm || statusFilter !== 'all'">
+                Aucune candidature ne correspond à vos critères de recherche
+              </p>
+              <p *ngIf="!searchTerm && statusFilter === 'all'">
+                Aucune candidature pour cette offre
+              </p>
+              <button
+                class="btn-outline-modern"
+                (click)="loadApplications()"
+                *ngIf="applications.length === 0"
+              >
+                <i class="fas fa-redo"></i> Rafraîchir
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info-footer" *ngIf="filteredApplications.length > 0">
+    <div class="info-item">
+      <i class="fas fa-info-circle"></i> Affichage de
+      {{ filteredApplications.length }} sur
+      {{ applications.length }} candidature(s)
+    </div>
+    <div class="export-actions">
+      <button
+        class="btn-outline-modern"
+        (click)="exportToExcel()"
+        [disabled]="filteredApplications.length === 0"
+      >
+        <i class="fas fa-file-excel"></i> Exporter en Excel
+      </button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="showEmailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>
+          <i class="fas fa-envelope"></i>
+          <ng-container *ngIf="bulkCandidates.length > 0; else singleTitle">
+            Envoyer un email à {{ bulkCandidates.length }} candidat(s)
+            présélectionné(s)
+          </ng-container>
+          <ng-template #singleTitle>
+            Envoyer un email à {{ selectedApplication?.candidateFirstName }}
+            {{ selectedApplication?.candidateLastName }}
+          </ng-template>
+        </h3>
+        <button class="modal-close" (click)="closeEmailModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Type d'email</label>
+          <select
+            [(ngModel)]="emailType"
+            (change)="updateEmailSubject()"
+            class="form-control"
+          >
+            <option value="generic">Message générique</option>
+            <option value="interview">Invitation à un entretien</option>
+            <option value="rejection">Refus de candidature</option>
+            <option value="info">Informations complémentaires</option>
+            <option value="meeting">Invitation à une réunion</option>
+          </select>
+        </div>
+
+        <div
+          class="form-group"
+          *ngIf="emailType === 'interview' || emailType === 'meeting'"
+        >
+          <h4>Détails de la réunion</h4>
+          <div class="form-row">
+            <div class="form-col">
+              <label>Date de la réunion</label>
+              <input
+                type="date"
+                [(ngModel)]="customData.meetingDate"
+                [min]="getTomorrowDate()"
+                class="form-control"
+                required
+              />
+            </div>
+            <div class="form-col">
+              <label>Heure de début</label>
+              <input
+                type="time"
+                [(ngModel)]="customData.meetingStartTime"
+                class="form-control"
+                required
+              />
+            </div>
+            <div class="form-col">
+              <label>Durée (minutes)</label>
+              <select
+                [(ngModel)]="customData.meetingDuration"
+                class="form-control"
+              >
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60">1 heure</option>
+                <option value="90">1 heure 30</option>
+                <option value="120">2 heures</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Type de réunion</label>
+            <select
+              [(ngModel)]="customData.meetingType"
+              class="form-control"
+              (change)="onMeetingTypeChange()"
+            >
+              <option value="in-person">En présentiel</option>
+              <option value="online">En ligne (visioconférence)</option>
+              <option value="hybrid">Hybride</option>
+            </select>
+          </div>
+
+          <div
+            class="form-group"
+            *ngIf="
+              customData.meetingType === 'in-person' ||
+              customData.meetingType === 'hybrid'
+            "
+          >
+            <label>Lieu de la réunion</label>
+            <input
+              type="text"
+              [(ngModel)]="customData.meetingLocation"
+              placeholder="Ex: Siège social, Bureau 201, 123 Rue Example..."
+              class="form-control"
+            />
+          </div>
+
+          <div
+            class="form-group"
+            *ngIf="
+              customData.meetingType === 'online' ||
+              customData.meetingType === 'hybrid'
+            "
+          >
+            <label>Lien de la visioconférence</label>
+            <input
+              type="url"
+              [(ngModel)]="customData.meetingLink"
+              placeholder="https://meet.google.com/xxx-yyyy-zzz ou https://zoom.us/j/..."
+              class="form-control"
+            />
+          </div>
+
+          <div class="form-group">
+            <label
+              >Inviter d'autres personnes (emails séparés par des
+              virgules)</label
+            >
+            <input
+              type="text"
+              [(ngModel)]="customData.additionalAttendees"
+              placeholder="colleague1@example.com, colleague2@example.com"
+              class="form-control"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Instructions supplémentaires</label>
+            <textarea
+              [(ngModel)]="customData.additionalInstructions"
+              rows="3"
+              class="form-control"
+              placeholder="Préparation requise, documents à apporter..."
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="emailType === 'rejection'">
+          <label>Raison du refus (optionnel)</label>
+          <input
+            type="text"
+            [(ngModel)]="customData.rejectionReason"
+            placeholder="Ex: Profil ne correspond pas..."
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Message personnalisé</label>
+          <textarea
+            [(ngModel)]="customData.message"
+            rows="5"
+            class="form-control"
+            placeholder="Écrivez votre message ici..."
+          ></textarea>
+          <small class="text-muted"
+            >Ce message sera inclus dans l'email formaté</small
+          >
+        </div>
+
+        <div class="form-group" *ngIf="bulkCandidates.length === 0">
+          <label>Destinataire</label>
+          <input
+            type="text"
+            [value]="selectedApplication?.candidateEmail"
+            class="form-control"
+            readonly
+          />
+        </div>
+
+        <div
+          class="email-preview"
+          *ngIf="
+            customData.message ||
+            emailType === 'interview' ||
+            emailType === 'meeting'
+          "
+        >
+          <h4>Aperçu du message :</h4>
+          <div class="preview-content">
+            <p><strong>Objet :</strong> {{ emailSubject }}</p>
+            <p><strong>Contenu :</strong></p>
+            <div class="preview-text">
+              <div *ngIf="emailType === 'meeting' || emailType === 'interview'">
+                <p><strong>Détails de la réunion :</strong></p>
+                <ul>
+                  <li *ngIf="customData.meetingDate">
+                    <strong>Date :</strong>
+                    {{ formatPreviewDate(customData.meetingDate) }}
+                  </li>
+                  <li *ngIf="customData.meetingStartTime">
+                    <strong>Heure :</strong> {{ customData.meetingStartTime }}
+                  </li>
+                  <li *ngIf="customData.meetingDuration">
+                    <strong>Durée :</strong>
+                    {{ customData.meetingDuration }} minutes
+                  </li>
+                  <li *ngIf="customData.meetingLocation">
+                    <strong>Lieu :</strong> {{ customData.meetingLocation }}
+                  </li>
+                  <li *ngIf="customData.meetingLink">
+                    <strong>Lien :</strong> {{ customData.meetingLink }}
+                  </li>
+                </ul>
+              </div>
+              <p>{{ customData.message }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          class="btn-outline-modern"
+          (click)="closeEmailModal()"
+          [disabled]="isSendingEmail"
+        >
+          Annuler
+        </button>
+        <button
+          class="btn-primary-modern"
+          (click)="sendEmailToCandidate()"
+          [disabled]="
+            isSendingEmail || (!customData.message && emailType !== 'meeting')
+          "
+        >
+          <i class="fas fa-paper-plane"></i>
+          {{ isSendingEmail ? "Envoi en cours..." : "Envoyer l'email" }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

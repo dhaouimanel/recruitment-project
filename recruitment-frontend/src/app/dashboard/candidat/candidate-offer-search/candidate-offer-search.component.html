@@ -1,0 +1,77 @@
+<div class="search-container">
+  <div class="search-header">
+    <button class="btn-back" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+    </button>
+    <h2><i class="fas fa-search"></i> Recherche sémantique d'offres</h2>
+  </div>
+  <form (ngSubmit)="onSearch()" #searchForm="ngForm">
+    <div class="search-row">
+      <input
+        type="text"
+        [(ngModel)]="query"
+        name="query"
+        placeholder="Ex: développeur Java, architecte cloud..."
+        class="search-input"
+      />
+      <input
+        type="text"
+        [(ngModel)]="location"
+        name="location"
+        placeholder="Localisation (optionnel)"
+        class="location-input"
+      />
+      <button type="submit" [disabled]="isLoading" class="btn-search">
+        <i class="fas fa-search"></i> Rechercher
+      </button>
+    </div>
+  </form>
+
+  <div *ngIf="isLoading" class="skeleton-grid">
+    <div class="skeleton-card" *ngFor="let _ of [1, 2, 3, 4]"></div>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-message">
+    <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+  </div>
+
+  <div *ngIf="results.length > 0" class="results">
+    <h3>{{ results.length }} résultat(s) trouvé(s)</h3>
+    <div class="offers-grid">
+      <div *ngFor="let item of results" class="offer-card">
+        <div class="offer-header">
+          <h4>{{ item.offer.title }}</h4>
+          <span
+            class="similarity-badge"
+            [style.background-color]="getSimilarityColor(item.similarity)"
+          >
+            {{ item.similarity | percent: "1.0-0" }}
+          </span>
+        </div>
+        <p class="offer-description">
+          {{ item.offer.description | slice: 0 : 150 }}...
+        </p>
+        <div class="offer-meta">
+          <span *ngIf="item.offer.location">
+            <i class="fas fa-map-marker-alt"></i> {{ item.offer.location }}
+          </span>
+          <span class="offer-date">
+            <i class="far fa-calendar"></i>
+            {{ item.offer.createDate | date: "dd/MM/yyyy" }}
+          </span>
+        </div>
+        <button class="btn-apply" (click)="applyToOffer(item.offer.id)">
+          Postuler
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    *ngIf="!isLoading && results.length === 0 && (query || location)"
+    class="no-results"
+  >
+    <i class="fas fa-times-circle"></i> Aucune offre ne correspond à votre
+    recherche.
+  </div>
+</div>
