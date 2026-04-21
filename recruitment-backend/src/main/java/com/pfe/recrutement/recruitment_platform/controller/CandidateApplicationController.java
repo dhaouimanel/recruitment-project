@@ -305,4 +305,28 @@ public class CandidateApplicationController {
         }
     }
 
+    @GetMapping("/cv-history")
+    public ResponseEntity<?> getMyCvHistory(Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            List<Application> applications = applicationService.getApplicationsByCandidate(username);
+
+            List<Map<String, Object>> history = applications.stream()
+                    .filter(app -> app.getCvPath() != null)
+                    .map(app -> {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("applicationId", app.getId());
+                        map.put("cvFileName", extractFileName(app.getCvPath()));
+                        map.put("offerTitle", app.getOffer() != null ? app.getOffer().getTitle() : "");
+                        map.put("applicationDate", app.getCreatedAt());
+                        return map;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
 }

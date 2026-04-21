@@ -52,6 +52,12 @@ public class User {
     @Size(max = 120)
     private String password;
 
+    @Column(name = "cv_path")
+    private String cvPath;  // chemin du dernier CV uploadé par le candidat
+
+    @Column(name = "cv_filename")
+    private String cvFilename;  // nom original du fichier
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "user_roles",
